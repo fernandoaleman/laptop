@@ -1,0 +1,3 @@
+fancy_echo "Finished. Your laptop is ready for development."
+sleep 2
+fancy_echo "Happy Coding!"
