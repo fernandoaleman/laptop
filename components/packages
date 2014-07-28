@@ -10,7 +10,7 @@ fancy_echo "Installing Postgres ..."
 fancy_echo "Installing Redis, a good key-value database ..."
   brew_install_or_upgrade 'redis'
 
-fancy_echo "Installing The Silver Searcher to search the contents of files ..."
+fancy_echo "Installing The Silver Searcher (better than ack or grep) to search the contents of files ..."
   brew_install_or_upgrade 'the_silver_searcher'
 
 fancy_echo "Installing vim from Homebrew to get the latest version ..."
