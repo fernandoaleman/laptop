@@ -34,6 +34,8 @@ fancy_echo() {
 
 fancy_echo "Changing your shell to zsh ..."
   chsh -s $(which zsh)
+
+fancy_echo "Installing  
 ### end components/zsh
 
 brew_install_or_upgrade() {
@@ -162,6 +164,7 @@ fancy_echo "Installing rbenv, to change Ruby versions ..."
   brew_install_or_upgrade 'rbenv'
 
   if ! grep -qs "rbenv init" ~/.zshrc; then
+    printf '\n# Rbenv\n' >> ~/.zshrc
     printf 'export PATH="$HOME/.rbenv/bin:$PATH"\n' >> ~/.zshrc
     printf 'eval "$(rbenv init - zsh --no-rehash)"\n' >> ~/.zshrc
 
@@ -198,10 +201,16 @@ fancy_echo "Setting $ruby_version as global default Ruby ..."
 fancy_echo "Updating to latest Rubygems version ..."
   gem update --system
 
+if [ ! -f "$HOME/.gemrc" ]; then
+  fancy_echo "Installing gemrc ..."
+  touch $HOME/.zshrc
+fi
+
 fancy_echo "Installing Bundler to install project-specific Ruby gems ..."
   gem install bundler --no-document --pre
 
 fancy_echo "Installing Capistrano for Ruby deployments ..."
+  gem install capistrano -v=2.15.5
   gem install capistrano-ext -v=1.2.1
 ### end components/ruby-environment
 
@@ -214,19 +223,19 @@ fancy_echo "Installing GitHub CLI client ..."
   brew_install_or_upgrade 'hub'
 
   if ! grep -qs "GITHUB_HOST" ~/.zshrc; then
-    printf '# Github Enterprise\n' >> ~/.zshrc
+    printf '\n# Github Enterprise\n' >> ~/.zshrc
     printf 'export GITHUB_HOST=github.clickhere.com\n' >> ~/.zshrc
 
-    fancy_echo "Enable Github Enterprise host ..."
+    fancy_echo "Enabling Github Enterprise host ..."
       export GITHUB_HOST=github.clickhere.com
   fi
 
 fancy_echo "Adding git alias to hub ..."
   if ! grep -qs "hub alias" ~/.zshrc; then
-    printf '# Alias `git` to `hub` command' >> ~/.zshrc
+    printf '\n# Alias `git` to `hub` command\n' >> ~/.zshrc
     printf 'eval "$(hub alias -s)"\n' >> ~/.zshrc
 
-    fancy_echo "Enable git alias ..."
+    fancy_echo "Enabling git alias ..."
       eval "$(hub alias -s)"
   fi
 ### end components/github
@@ -240,6 +249,16 @@ else
 fi
 ### end components/rcm
 
+fancy_echo "Installing ssh key ..."
+  ssh-keygen -t rsa
+### end components/ssh-key
+
+if [[ ! -d "$HOME/code/" ]]; then
+  mkdir "$HOME/code"
+fi
+
+### end components/workspace
+
 fancy_echo "Installing your personal additions from ~/.laptop.local ..."
   if [[ -f ~/.laptop.local ]]; then
     source ~/.laptop.local
@@ -249,5 +268,7 @@ fancy_echo "Installing your personal additions from ~/.laptop.local ..."
 fancy_echo "Finished. Your laptop is ready for development."
 sleep 2
 fancy_echo "Happy Coding!"
+sleep 1
+fancy_echo "PLEASE RESTART TERMINAL FOR ALL CHANGES TO TAKE EFFECT\n\n"
 ### end components/finished
 
