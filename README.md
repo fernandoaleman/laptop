@@ -18,6 +18,8 @@ XCode](https://developer.apple.com/downloads/index.action).
 
 For Mavericks (10.9): installed with the script, no prerequisite.
 
+For Yosemite (10.10): installed with the script, no prerequisite.
+
 Install
 -------
 
@@ -40,26 +42,35 @@ What it sets up
 ---------------
 
 * Zsh as your shell
-* Bundler gem for managing Ruby libraries
-* Exuberant Ctags for indexing files for vim tab completion
-* Hub gem for interacting with the GitHub API
-* Homebrew for managing operating system libraries (OS X only)
-* ImageMagick for cropping and resizing images
-* Node.js and NPM, for running apps and installing JavaScript packages
-* Postgres for storing relational data
-* Rails gem for writing web applications
+* Homebrew for managing operating system libraries
 * Rbenv for managing versions of the Ruby programming language
-* Redis for storing key-value data
 * Ruby Build for installing Rubies
 * Ruby stable for writing general-purpose code
-* The Silver Searcher for finding things in files
+* Bundler gem for managing Ruby libraries
+* Rails gem for writing web applications
+* Capistrano gem for deploying web applications
+* MySQL database for storing relational data
+* Postgres database for storing relational data
+* Redis for storing key-value data
+* Node.js and NPM, for running apps and installing JavaScript packages
+* Vim for text editing from terminal
+* Exuberant Ctags for indexing files for vim tab completion
 * Tmux for saving project state and switching between projects
+* The Silver Searcher for finding things in files
+* Hub gem for interacting with the GitHub API
+* ImageMagick for cropping and resizing images
 
-It should take less than 15 minutes to install (depends on your machine).
+It should take less than 20 minutes to install (depends on your machine).
 
 Laptop can be run multiple times on the same machine safely. It will upgrade
 already installed packages and install and activate a new version of ruby (if
 one is available).
+
+Workspace
+---------
+
+A directory called 'code' has been created in your home directory so all your
+projects can be saved there. This will be your "workspace".
 
 Make your own customizations
 ----------------------------
