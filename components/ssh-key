@@ -1,2 +1,2 @@
-fancy_echo "Follow the prompts to generate your ssh key ..."
+fancy_echo "Installing ssh key ..."
   ssh-keygen -t rsa
