@@ -27,4 +27,4 @@ jobs:
         run: shellcheck laptop
 
       - name: Test
-        run: sh mac
+        run: sh laptop
