@@ -1,0 +1,27 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  osx:
+    name: 'macOS ${{ matrix.os }}'
+    runs-on: 'macos-${{ matrix.os }}'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - '12'
+          - '13'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: brew install shellcheck
+
+      - name: Lint
+        run: shellcheck laptop
