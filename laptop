@@ -128,6 +128,8 @@ brew "tree"
 brew "wget"
 brew "zoxide"
 brew "zsh"
+brew "zsh-autosuggestions"
+brew "zsh-syntax-highlighting"
 
 # GitHub
 brew "gh"
