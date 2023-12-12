@@ -1,6 +1,7 @@
 # Laptop
 
 [![Test Status](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml/badge.svg)](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml)
+
 Laptop is a script to set up a macOS laptop for web development.
 
 It can be run multiple times safely on the same machine. It installs and
