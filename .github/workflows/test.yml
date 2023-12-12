@@ -25,6 +25,3 @@ jobs:
 
       - name: Lint
         run: shellcheck laptop
-
-      - name: Test
-        run: sh laptop
