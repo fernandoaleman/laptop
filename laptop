@@ -166,8 +166,8 @@ cask "reflex"
 cask "slack"
 EOF
 
-append_to_zshrc "eval \"\$(starship init zsh)\""
-append_to_zshrc "eval \"\$(zoxide init zsh)\""
+append_to_zshrc "eval \"\$(starship init zsh)\"" 1
+append_to_zshrc "eval \"\$(zoxide init zsh)\"" 1
 
 if [ ! -d "$HOME/.config/tmux/plugins" ]; then
   mkdir -p "$HOME/.config/tmux/plugins"
@@ -196,7 +196,7 @@ fi
 if [ ! -d "$HOME/.asdf" ]; then
   fancy_echo "Installing asdf version manager ..."
   brew install asdf
-  append_to_zshrc "source $(brew --prefix asdf)/libexec/asdf.zsh" 1
+  append_to_zshrc "source $(brew --prefix asdf)/libexec/asdf.sh"
 fi
 
 alias install_asdf_plugin=add_or_update_asdf_plugin
