@@ -10,9 +10,9 @@ upgrades packages based on what is already installed.
 
 ## Requirements
 
-* macOS Sonoma (14.x) on Apple Silicon
-* macOS Ventura (13.x) on Apple Silicon
-* macOS Monterey (12.x) on Apple Silicon
+* macOS Sonoma (14.x) on Apple Silicon and Intel
+* macOS Ventura (13.x) on Apple Silicon and Intel
+* macOS Monterey (12.x) on Apple Silicon and Intel
 
 ## Install
 
