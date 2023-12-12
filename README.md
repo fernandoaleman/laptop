@@ -1,6 +1,6 @@
 # Laptop
 
-[![laptop](https://github.com/fernandoaleman/laptop/actions/workflows/laptop.yml/badge.svg)](https://github.com/fernandoaleman/laptop/actions/workflows/laptop.yml)
+[![laptop](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml/badge.svg)](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml)
 [![mac](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml/badge.svg)](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml)
 
 Laptop is a script to set up a macOS laptop for web development.
