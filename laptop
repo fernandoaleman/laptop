@@ -250,6 +250,10 @@ install_asdf_language "nodejs"
 
 npm i changelog-maker -g
 
+fancy_echo "Installing latest Python ..."
+add_or_update_asdf_plugin "python" "https://github.com/asdf-community/asdf-python.git"
+install_asdf_language "python"
+
 # Enable menu bar auto hide
 defaults write NSGlobalDomain _HIHideMenuBar -bool true
 
