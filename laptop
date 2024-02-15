@@ -106,6 +106,7 @@ cask "font-jetbrains-mono-nerd-font"
 # Unix
 brew "awscli"
 brew "bash"
+brew "bat"
 brew "curl"
 brew "diff-so-fancy"
 brew "fd"

@@ -9,9 +9,9 @@ upgrades packages based on what is already installed.
 
 ## Requirements
 
-* macOS Sonoma (14.x) on Apple Silicon and Intel
-* macOS Ventura (13.x) on Apple Silicon and Intel
-* macOS Monterey (12.x) on Apple Silicon and Intel
+- macOS Sonoma (14.x) on Apple Silicon and Intel
+- macOS Ventura (13.x) on Apple Silicon and Intel
+- macOS Monterey (12.x) on Apple Silicon and Intel
 
 ## Install
 
@@ -44,18 +44,20 @@ as an attachment.
 
 macOS tools:
 
-* [Homebrew] for managing operating system libraries.
+- [Homebrew] for managing operating system libraries.
 
 [Homebrew]: http://brew.sh/
 
 Unix tools:
 
-* [Git] for version control
-* [OpenSSL] for Transport Layer Security (TLS)
-* [RCM] for managing company and personal dotfiles
-* [Tmux] for saving project state and switching between projects
-* [Fish] as your shell
+- [Bat] a fancy `cat` clone
+- [Git] for version control
+- [OpenSSL] for Transport Layer Security (TLS)
+- [RCM] for managing company and personal dotfiles
+- [Tmux] for saving project state and switching between projects
+- [Fish] as your shell
 
+[Bat]: https://github.com/sharkdp/bat
 [Git]: https://git-scm.com/
 [OpenSSL]: https://www.openssl.org/
 [RCM]: https://github.com/thoughtbot/rcm
@@ -64,7 +66,7 @@ Unix tools:
 
 GitHub tools:
 
-* [GitHub CLI] for interacting with the GitHub API
+- [GitHub CLI] for interacting with the GitHub API
 
 [GitHub CLI]: https://cli.github.com/
 
