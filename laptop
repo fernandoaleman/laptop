@@ -98,7 +98,6 @@ fancy_echo "Updating homebrew formulae ..."
 brew update --force # https://github.com/Homebrew/brew/issues/1151
 brew bundle --file=- <<EOF
 tap "arl/arl"
-tap "homebrew/cask-fonts"
 
 # Fonts
 cask "font-jetbrains-mono-nerd-font"
