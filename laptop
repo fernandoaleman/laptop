@@ -253,6 +253,10 @@ if ! asdf list ruby | grep -Fq 2.6.7; then
   asdf global ruby 2.6.7
 fi
 
+if ! gem list bundler -v 1.17.3 --installed >/dev/null; then
+  gem install bundler -v 1.17.3
+fi
+
 fancy_echo "Installing neovim gem dependencies ..."
 if ! gem list rubocop-ast -v 1.30.0 --installed >/dev/null; then
   gem install rubocop-ast -v 1.30.0
