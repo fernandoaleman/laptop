@@ -247,6 +247,33 @@ gem update --system
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config --global jobs $((number_of_cores - 1))
 
+fancy_echo "Installing Ruby 2.6.7 ..."
+if ! asdf list ruby | grep -Fq 2.6.7; then
+  asdf install ruby 2.6.7
+  asdf global ruby 2.6.7
+fi
+
+fancy_echo "Installing neovim gem dependencies ..."
+if ! gem list rubocop-ast -v 1.30.0 --installed >/dev/null; then
+  gem install rubocop-ast -v 1.30.0
+fi
+
+if ! gem list parallel -v 1.24.0 --installed >/dev/null; then
+  gem install parallel -v 1.24.0
+fi
+
+if ! gem list rubocop -v 1.25.1 --installed >/dev/null; then
+  gem install rubocop -v=1.25.1
+fi
+
+if ! gem list nokogiri -v 1.13.10 --installed >/dev/null; then
+  gem install nokogiri -v 1.13.10
+fi
+
+if ! gem list solargraph -v 0.41.2 --installed >/dev/null; then
+  gem install solargraph -v=0.41.2
+fi
+
 fancy_echo "Installing latest Node ..."
 add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
 install_asdf_language "nodejs"
