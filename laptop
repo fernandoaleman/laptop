@@ -153,7 +153,6 @@ brew "yarn"
 brew "zlib"
 
 # Databases
-brew "mysql-client@5.7", link: true
 brew "libpq", link: true
 
 # Mac apps
