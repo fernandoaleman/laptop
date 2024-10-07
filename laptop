@@ -156,9 +156,6 @@ brew "zlib"
 brew "mysql-client@5.7", link: true
 brew "libpq", link: true
 
-# Chef
-cask "chef-workstation"
-
 # Mac apps
 cask "1password"
 cask "alacritty"
