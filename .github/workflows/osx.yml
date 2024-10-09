@@ -1,0 +1,27 @@
+name: Test osx.sh
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: 'macOS ${{ matrix.os }}'
+    runs-on: 'macos-${{ matrix.os }}'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - '14'
+          - '15'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: brew install shellcheck
+
+      - name: Lint
+        run: shellcheck osx.sh
