@@ -272,6 +272,10 @@ if ! gem list rubocop -v 1.25.1 --installed >/dev/null; then
   gem install rubocop -v=1.25.1
 fi
 
+if ! gem list rubocop-rspec -v 2.11.1 --installed >/dev/null; then
+  gem install rubocop-rspec -v 2.11.1
+fi
+
 if ! gem list nokogiri -v 1.13.10 --installed >/dev/null; then
   gem install nokogiri -v 1.13.10
 fi
