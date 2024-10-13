@@ -8,7 +8,7 @@ fancy_echo() {
   shift
 
   # shellcheck disable=SC2059
-  printf "\\n$fmt\\n" "$@"
+  printf "\\n$fmt\\n\\n" "$@"
 }
 
 append_to_zshrc() {
@@ -258,6 +258,10 @@ install_asdf_language "ruby"
 gem update --system
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config --global jobs $((number_of_cores - 1))
+
+if [ ! -f "$HOME/.gemrc" ]; then
+  echo "gem: --no-document" >"$HOME/.gemrc"
+fi
 
 fancy_echo "Installing Ruby 2.6.7 ..."
 if ! asdf list ruby | grep -Fq 2.6.7; then
