@@ -25,3 +25,6 @@ jobs:
 
       - name: Lint
         run: shellcheck mac.sh
+
+      - name: Test
+        run: sh mac.sh
