@@ -93,5 +93,3 @@ fi
 for app in "Dock" "Finder"; do
   killall "$app" >/dev/null 2>&1
 done
-
-fancy_echo "osx setup is complete!"
