@@ -243,7 +243,7 @@ gem_install_or_update() {
 }
 
 # shellcheck disable=SC1091
-. "$(brew --prefix asdf)/libexec/asdf.sh"
+. "$HOME/.asdf/asdf.sh"
 
 fancy_echo "Installing latest Ruby ..."
 add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
@@ -257,6 +257,8 @@ if ! asdf list ruby | grep -Fq 2.6.7; then
   asdf install ruby 2.6.7
   asdf global ruby 2.6.7
 fi
+
+asdf shell ruby 2.6.7
 
 if ! gem list bundler -v 1.17.3 --installed >/dev/null; then
   gem install bundler -v 1.17.3
