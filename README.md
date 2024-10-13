@@ -9,22 +9,21 @@ upgrades packages based on what is already installed.
 
 ## Requirements
 
+- macOS Sequoia (15.x) on Apple Silicon and Intel
 - macOS Sonoma (14.x) on Apple Silicon and Intel
-- macOS Ventura (13.x) on Apple Silicon and Intel
-- macOS Monterey (12.x) on Apple Silicon and Intel
 
 ## Install
 
 Download the script:
 
 ```sh
-curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/master/laptop
+curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/master/mac.sh
 ```
 
 Run the script:
 
 ```sh
-sh laptop 2>&1 | tee ~/laptop.log
+sh mac.sh 2>&1 | tee ~/laptop.log
 ```
 
 Optionally, review the log:
