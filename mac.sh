@@ -212,7 +212,7 @@ if [ ! -d "$HOME/.asdf" ]; then
   git clone https://github.com/asdf-vm/asdf.git "$HOME/.asdf" --branch v0.14.1
 
   # shellcheck disable=SC2016
-  append_to_zshrc '. "$HOME/.asdf/.asdf.sh'
+  append_to_zshrc '. "$HOME/.asdf/asdf.sh"'
   # shellcheck disable=SC2016
   append_to_zshrc 'fpath=(${ASDF_DIR}/completions $fpath)' 1
   append_to_zshrc 'autoload -Uz compinit && compinit' 1
@@ -261,6 +261,9 @@ bundle config --global jobs $((number_of_cores - 1))
 
 fancy_echo "Installing Ruby 2.6.7 ..."
 if ! asdf list ruby | grep -Fq 2.6.7; then
+  export DLDFLAGS="-Wl,-undefined,dynamic_lookup"
+  export OPENSSL_CFLAGS="-Wno-error=implicit-function-declaration"
+  export CFLAGS=-Wno-error="implicit-function-declaration"
   asdf install ruby 2.6.7
   asdf global ruby 2.6.7
 fi
