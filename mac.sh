@@ -97,8 +97,6 @@ fi
 fancy_echo "Updating homebrew formulae ..."
 brew update --force # https://github.com/Homebrew/brew/issues/1151
 brew bundle --file=- <<EOF
-tap "arl/arl"
-
 # Fonts
 cask "font-jetbrains-mono-nerd-font"
 
@@ -113,7 +111,6 @@ brew "fastfetch"
 brew "fd"
 brew "fzf"
 brew "git"
-brew "gitmux"
 brew "jq"
 brew "lazygit"
 brew "lf"
@@ -130,7 +127,6 @@ brew "tldr"
 brew "tmux"
 brew "tree"
 brew "wget"
-brew "wouterdebie/repo/i2cssh"
 brew "zoxide"
 brew "zsh"
 brew "zsh-autosuggestions"
@@ -172,6 +168,13 @@ EOF
 
 append_to_zshrc "eval \"\$(starship init zsh)\"" 1
 append_to_zshrc "eval \"\$(zoxide init zsh)\"" 1
+
+fancy_echo "Installing gitmux ..."
+brew tap arl/arl
+brew install gitmux
+
+fancy_echo "Installing i2cssh ..."
+brew install wouterdebie/repo/i2cssh
 
 if [ ! -d "$HOME/.config/tmux/plugins" ]; then
   mkdir -p "$HOME/.config/tmux/plugins"
