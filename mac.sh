@@ -164,6 +164,7 @@ cask "macx-youtube-downloader"
 cask "rectangle"
 cask "reflex"
 cask "slack"
+cask "sync"
 EOF
 
 append_to_zshrc "eval \"\$(starship init zsh)\"" 1
