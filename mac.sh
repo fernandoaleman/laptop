@@ -171,6 +171,9 @@ EOF
 append_to_zshrc "eval \"\$(starship init zsh)\"" 1
 append_to_zshrc "eval \"\$(zoxide init zsh)\"" 1
 
+fancy_echo "Installing sesh ..."
+brew install joshmedeski/sesh/sesh
+
 fancy_echo "Installing gitmux ..."
 brew tap arl/arl
 brew install gitmux
