@@ -155,6 +155,7 @@ brew "libpq", link: true
 cask "1password"
 cask "alacritty"
 cask "appcleaner"
+cask "chatgpt"
 cask "discord"
 cask "docker"
 cask "espanso"
