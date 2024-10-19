@@ -1,9 +1,5 @@
 #!/bin/sh
 
-macos_version() {
-  sw_vers -productVersion | cut -d '.' -f 1
-}
-
 # Enable menu bar auto hide
 defaults write NSGlobalDomain _HIHideMenuBar -bool true
 
@@ -77,17 +73,6 @@ defaults write com.apple.TextEdit RichText -bool false
 
 # Set Activity Monitor update frequency to 2s
 defaults write com.apple.ActivityMonitor UpdatePeriod -int 2
-
-if macos_version -gt 14; then
-  # Set keyboard shortcuts for tiling
-  defaults write -g NSUserKeyEquivalents '{
-    "\\033Window\033Fill" = "~^\U21a9";
-    "\033Window\033Move & Resize\033Top Left" = "~^u";
-    "\033Window\033Move & Resize\033Top Right" = "~^i";
-    "\033Window\033Move & Resize\033Bottom Left" = "~^j";
-    "\033Window\033Move & Resize\033Bottom Right" = "~^k";
-  }'
-fi
 
 # Restart processes
 for app in "Dock" "Finder"; do

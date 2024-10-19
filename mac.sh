@@ -30,10 +30,6 @@ append_to_zshrc() {
   fi
 }
 
-macos_version() {
-  sw_vers -productVersion | cut -d '.' -f 1
-}
-
 # shellcheck disable=SC2154
 trap 'ret=$?; test $ret -ne 0 && printf "failed\n\n" >&2; exit $ret' EXIT
 
@@ -165,13 +161,10 @@ cask "espanso"
 cask "google-chrome"
 cask "flycut"
 cask "macx-youtube-downloader"
+cask "rectangle"
 cask "reflex"
 cask "slack"
 EOF
-
-if macos_version -lt 15; then
-  brew install --cask rectangle
-fi
 
 append_to_zshrc "eval \"\$(starship init zsh)\"" 1
 append_to_zshrc "eval \"\$(zoxide init zsh)\"" 1
