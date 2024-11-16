@@ -101,6 +101,7 @@ brew bundle --file=- <<EOF
 cask "font-jetbrains-mono-nerd-font"
 
 # Unix
+brew "ansible"
 brew "awscli"
 brew "bash"
 brew "bat"
@@ -132,6 +133,7 @@ brew "wget"
 brew "zoxide"
 brew "zsh"
 brew "zsh-autosuggestions"
+brew "zsh-completions"
 brew "zsh-syntax-highlighting"
 
 # GitHub
