@@ -278,6 +278,7 @@ if ! asdf list ruby | grep -Fq 2.6.7; then
 fi
 
 asdf shell ruby 2.6.7
+asdf reshim ruby
 
 if ! gem list bundler -v 1.17.3 --installed >/dev/null; then
   gem install bundler -v 1.17.3
