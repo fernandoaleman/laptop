@@ -163,8 +163,9 @@ cask "chatgpt"
 cask "discord"
 cask "docker"
 cask "espanso"
-cask "google-chrome"
 cask "flycut"
+cask "google-chrome"
+cask "iterm2"
 cask "loom"
 cask "macx-youtube-downloader"
 cask "private-internet-access"
@@ -177,6 +178,11 @@ EOF
 
 append_to_zshrc "eval \"\$(starship init zsh)\"" 1
 append_to_zshrc "eval \"\$(zoxide init zsh)\"" 1
+
+fancy_echo "Installing terraform..."
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+terraform -install-autocomplete
 
 fancy_echo "Installing sesh ..."
 brew install joshmedeski/sesh/sesh
