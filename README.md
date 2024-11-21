@@ -12,7 +12,7 @@ upgrades packages based on what is already installed.
 - macOS Sequoia (15.x) on Apple Silicon and Intel
 - macOS Sonoma (14.x) on Apple Silicon and Intel
 
-## Install
+## Install laptop
 
 Download the script:
 
@@ -30,6 +30,25 @@ Optionally, review the log:
 
 ```sh
 less ~/laptop.log
+
+## Install osx
+
+Download the script:
+
+```sh
+curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/master/osx
+```
+
+Run the script:
+
+```sh
+sh osx 2>&1 | tee ~/osx.log
+```
+
+Optionally, review the log:
+
+```sh
+less ~/osx.log
 ```
 
 ## Debugging

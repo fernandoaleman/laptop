@@ -1,4 +1,4 @@
-name: Test osx.sh
+name: Test osx script
 
 on:
   push:
@@ -6,15 +6,15 @@ on:
 
 jobs:
   test:
-    name: 'macOS ${{ matrix.os }}'
-    runs-on: 'macos-${{ matrix.os }}'
+    name: "macOS ${{ matrix.os }}"
+    runs-on: "macos-${{ matrix.os }}"
 
     strategy:
       fail-fast: false
       matrix:
         os:
-          - '14'
-          - '15'
+          - "14"
+          - "15"
 
     steps:
       - name: Checkout code
@@ -24,4 +24,4 @@ jobs:
         run: brew install shellcheck
 
       - name: Lint
-        run: shellcheck osx.sh
+        run: shellcheck osx
