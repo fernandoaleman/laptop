@@ -17,13 +17,13 @@ upgrades packages based on what is already installed.
 Download the script:
 
 ```sh
-curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/master/mac.sh
+curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/master/laptop
 ```
 
 Run the script:
 
 ```sh
-sh mac.sh 2>&1 | tee ~/laptop.log
+sh laptop 2>&1 | tee ~/laptop.log
 ```
 
 Optionally, review the log:
