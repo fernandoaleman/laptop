@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Set default settting for macOS
+
 # Enable menu bar auto hide
 defaults write NSGlobalDomain _HIHideMenuBar -bool true
 
