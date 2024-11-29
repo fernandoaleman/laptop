@@ -2,6 +2,8 @@ name: Test osx script
 
 on:
   push:
+    paths:
+      - osx
   pull_request:
 
 jobs:

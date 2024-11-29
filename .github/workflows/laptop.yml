@@ -2,6 +2,8 @@ name: Test laptop script
 
 on:
   push:
+    paths:
+      - laptop
   pull_request:
 
 jobs:
