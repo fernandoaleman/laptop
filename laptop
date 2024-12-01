@@ -101,7 +101,6 @@ brew bundle --file=- <<EOF
 cask "font-jetbrains-mono-nerd-font"
 
 # Unix
-brew "1password-cli"
 brew "ansible"
 brew "awscli"
 brew "bash"
@@ -159,6 +158,7 @@ brew "libpq", link: true
 
 # Mac apps
 cask "1password"
+cask "1password-cli"
 cask "alacritty"
 cask "appcleaner"
 cask "chatgpt"
