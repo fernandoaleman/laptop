@@ -143,9 +143,6 @@ brew "gh"
 # Image manipulation
 brew "imagemagick"
 
-# PDF Rendering
-cask "wkhtmltopdf"
-
 # Programming language prerequisites and package managers
 brew "coreutils"
 brew "libyaml" # should come after openssl
@@ -183,7 +180,8 @@ EOF
 
 fancy_echo "Hacking unsupported brew Taps"
 
-brew tap homebrew/core --force
+brew tap homebrew/cask --force # Needed for wkhtmltopdf
+brew tap homebrew/core --force # Needed for mysql-client@5.7 and openssl@1.1
 
 hack_unsupported_tap_failed() {
   echo "WARNING: unable to correct $1 formula"
@@ -211,13 +209,17 @@ hack_unsupported_tap() {
 
 hack_unsupported_tap openssl@1.1
 hack_unsupported_tap mysql-client@5.7
+hack_unsupported_tap wkhtmltopdf
 
 unset -f hack_unsupported_tap
 unset -f hack_unsupported_tap_failed
 
-# Install mysql-client@5.7
+fancy_echo "Installing mysql-client@5.7 ..."
 HOMEBREW_NO_INSTALL_FROM_API=1 brew install mysql-client@5.7
 brew link --force mysql-client@5.7
+
+fancy_echo "Installing wkhtmltopdf ..."
+HOMEBREW_NO_INSTALL_FROM_API=1 brew install wkhtmltopdf
 
 append_to_zshrc "eval \"\$(starship init zsh)\"" 1
 append_to_zshrc "eval \"\$(zoxide init zsh)\"" 1
