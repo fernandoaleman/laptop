@@ -101,6 +101,7 @@ brew bundle --file=- <<EOF
 cask "font-jetbrains-mono-nerd-font"
 
 # Unix
+brew "act"
 brew "ansible"
 brew "awscli"
 brew "bash"
