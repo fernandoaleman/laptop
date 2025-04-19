@@ -270,12 +270,18 @@ fi
 
 if [ ! -d "$HOME/.asdf" ]; then
   fancy_echo "Installing asdf version manager ..."
-  git clone https://github.com/asdf-vm/asdf.git "$HOME/.asdf" --branch v0.14.1
+  brew install asdf
 
   # shellcheck disable=SC2016
-  append_to_zshrc '. "$HOME/.asdf/asdf.sh"'
+  append_to_zshrc 'export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"'
+
+  if [ ! -d "${ASDF_DATA_DIR:-$HOME/.asdf}/completions" ]; then
+    mkdir -p "${ASDF_DATA_DIR:-$HOME/.asdf}/completions"
+    asdf completion zsh >"${ASDF_DATA_DIR:-$HOME/.asdf}/completions/_asdf"
+  fi
+
   # shellcheck disable=SC2016
-  append_to_zshrc 'fpath=(${ASDF_DIR}/completions $fpath)' 1
+  append_to_zshrc 'fpath=(${ASDF_DATA_DIR:-$HOME/.asdf}/completions $fpath)' 1
   append_to_zshrc 'autoload -Uz compinit && compinit' 1
 fi
 
@@ -284,21 +290,21 @@ add_or_update_asdf_plugin() {
   local name="$1"
   local url="$2"
 
-  if ! asdf plugin-list | grep -Fq "$name"; then
-    asdf plugin-add "$name" "$url"
+  if ! asdf plugin list | grep -Fq "$name"; then
+    asdf plugin add "$name" "$url"
   else
-    asdf plugin-update "$name"
+    asdf plugin update "$name"
   fi
 }
 
 install_asdf_language() {
   local language="$1"
   local version
-  version="$(asdf list-all "$language" | grep -v "[a-z]" | tail -1)"
+  version="$(asdf list all ruby | grep -v "[a-z]" | grep -v "^$" | tail -n 1)"
 
   if ! asdf list "$language" | grep -Fq "$version"; then
     asdf install "$language" "$version"
-    asdf global "$language" "$version"
+    asdf set -u "$language" "$version"
   fi
 }
 
@@ -309,9 +315,6 @@ gem_install_or_update() {
     gem install "$@"
   fi
 }
-
-# shellcheck disable=SC1091
-. "$HOME/.asdf/asdf.sh"
 
 fancy_echo "Installing latest Ruby ..."
 add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
@@ -333,7 +336,7 @@ if ! asdf list ruby | grep -Fq 2.6.7; then
   asdf global ruby 2.6.7
 fi
 
-asdf shell ruby 2.6.7
+asdf set ruby 2.6.7
 asdf reshim ruby
 
 if ! gem list bundler -v 1.17.3 --installed >/dev/null; then
