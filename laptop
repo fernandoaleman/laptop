@@ -300,7 +300,7 @@ add_or_update_asdf_plugin() {
 install_asdf_language() {
   local language="$1"
   local version
-  version="$(asdf list all "$language" | grep -v "[a-z]" | grep -v "^$" | tail -n 1)"
+  version="$(asdf latest "$language")"
 
   if ! asdf list "$language" | grep -Fq "$version"; then
     asdf install "$language" "$version"
@@ -316,18 +316,9 @@ gem_install_or_update() {
   fi
 }
 
-fancy_echo "Installing latest Ruby ..."
-add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
-install_asdf_language "ruby"
-gem update --system
-number_of_cores=$(sysctl -n hw.ncpu)
-bundle config --global jobs $((number_of_cores - 1))
-
 if [ ! -f "$HOME/.gemrc" ]; then
   echo "gem: --no-document" >"$HOME/.gemrc"
 fi
-
-cp "$HOME/.tool-versions" "$HOME/.tool-versions.bak"
 
 fancy_echo "Installing Ruby 2.6.7 ..."
 if ! asdf list ruby | grep -Fq 2.6.7; then
@@ -337,7 +328,7 @@ if ! asdf list ruby | grep -Fq 2.6.7; then
   asdf install ruby 2.6.7
 fi
 
-asdf set ruby 2.6.7
+asdf set -u ruby 2.6.7
 asdf reshim ruby
 
 if ! gem list bundler -v 1.17.3 --installed >/dev/null; then
@@ -366,7 +357,12 @@ for gem in "${gems[@]}"; do
   fi
 done
 
-mv "$HOME/.tool-versions.bak" "$HOME/.tool-versions"
+fancy_echo "Installing latest Ruby ..."
+add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
+install_asdf_language "ruby"
+gem update --system
+number_of_cores=$(sysctl -n hw.ncpu)
+bundle config --global jobs $((number_of_cores - 1))
 
 fancy_echo "Installing latest Node ..."
 add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
