@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ft=shell
 
 # shellcheck disable=SC3043
