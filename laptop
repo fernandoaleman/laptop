@@ -299,8 +299,7 @@ add_or_update_asdf_plugin() {
 
 install_asdf_language() {
   local language="$1"
-  local version
-  version="$(asdf latest "$language")"
+  local version="${2:-$(asdf latest "$language")}"
 
   if ! asdf list "$language" | grep -Fq "$version"; then
     asdf install "$language" "$version"
@@ -321,15 +320,14 @@ if [ ! -f "$HOME/.gemrc" ]; then
 fi
 
 fancy_echo "Installing Ruby 2.6.7 ..."
-if ! asdf list ruby | grep -Fq 2.6.7; then
-  export DLDFLAGS="-Wl,-undefined,dynamic_lookup"
-  export OPENSSL_CFLAGS="-Wno-error=implicit-function-declaration"
-  export CFLAGS=-Wno-error="implicit-function-declaration"
-  asdf install ruby 2.6.7
-fi
+export DLDFLAGS="-Wl,-undefined,dynamic_lookup"
+export OPENSSL_CFLAGS="-Wno-error=implicit-function-declaration"
+export CFLAGS=-Wno-error="implicit-function-declaration"
+
+add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
+install_asdf_language "ruby" "2.6.7"
 
 asdf set -u ruby 2.6.7
-asdf reshim ruby
 
 if ! gem list bundler -v 1.17.3 --installed >/dev/null; then
   gem install bundler -v 1.17.3
@@ -358,8 +356,9 @@ for gem in "${gems[@]}"; do
 done
 
 fancy_echo "Installing latest Ruby ..."
-add_or_update_asdf_plugin "ruby" "https://github.com/asdf-vm/asdf-ruby.git"
 install_asdf_language "ruby"
+asdf set -u ruby 2.6.7
+
 gem update --system
 number_of_cores=$(sysctl -n hw.ncpu)
 bundle config --global jobs $((number_of_cores - 1))
