@@ -327,13 +327,14 @@ if [ ! -f "$HOME/.gemrc" ]; then
   echo "gem: --no-document" >"$HOME/.gemrc"
 fi
 
+cp "$HOME/.tool-versions" "$HOME/.tool-versions.bak"
+
 fancy_echo "Installing Ruby 2.6.7 ..."
 if ! asdf list ruby | grep -Fq 2.6.7; then
   export DLDFLAGS="-Wl,-undefined,dynamic_lookup"
   export OPENSSL_CFLAGS="-Wno-error=implicit-function-declaration"
   export CFLAGS=-Wno-error="implicit-function-declaration"
   asdf install ruby 2.6.7
-  asdf global ruby 2.6.7
 fi
 
 asdf set ruby 2.6.7
@@ -367,6 +368,8 @@ fi
 if ! gem list solargraph -v 0.41.2 --installed >/dev/null; then
   gem install solargraph -v=0.41.2
 fi
+
+mv "$HOME/.tool-versions.bak" "$HOME/.tool-versions"
 
 fancy_echo "Installing latest Node ..."
 add_or_update_asdf_plugin "nodejs" "https://github.com/asdf-vm/asdf-nodejs.git"
