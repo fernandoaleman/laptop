@@ -10,7 +10,6 @@ upgrades packages based on what is already installed.
 ## Requirements
 
 - macOS Sequoia (15.x) on Apple Silicon and Intel
-- macOS Sonoma (14.x) on Apple Silicon and Intel
 
 ## Install laptop
 
