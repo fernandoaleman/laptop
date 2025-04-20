@@ -300,7 +300,7 @@ add_or_update_asdf_plugin() {
 install_asdf_language() {
   local language="$1"
   local version
-  version="$(asdf list all ruby | grep -v "[a-z]" | grep -v "^$" | tail -n 1)"
+  version="$(asdf list all "$language" | grep -v "[a-z]" | grep -v "^$" | tail -n 1)"
 
   if ! asdf list "$language" | grep -Fq "$version"; then
     asdf install "$language" "$version"
