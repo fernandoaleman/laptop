@@ -159,7 +159,8 @@ cross-environment reproducibility. The source commit and build tools must be
 reviewed before running them; the verifier executes the committed builder.
 Run the verifier and committed builder in a disposable environment without
 network access, secrets, or publishing credentials; a trusted commit check does
-not sandbox code.
+not sandbox code. Use a trusted Git executable and controlled PATH; Git
+environment sanitization does not authenticate executables on PATH.
 The proposed Linux AMD64 build image is `python:3.12.16-bookworm` pinned to
 `sha256:034c3e9d991f148d14c32ff8350286b91420baca7757d37819c7a9cc771317a0`.
 Its runtime Python and zlib versions must be verified before release use.

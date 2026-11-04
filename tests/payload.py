@@ -172,13 +172,14 @@ class PayloadTests(unittest.TestCase):
                        check=True, stdout=subprocess.PIPE)
         candidate = candidate_path.read_text()
         bootstrap_hash = hashlib.sha256(candidate_path.read_bytes()).hexdigest()
-        self.stub("git", 'case "$1" in\n'
+        self.stub("git", '[ -z "${LD_TEST_INJECTION:-}" ] && [ -z "${DYLD_TEST_INJECTION:-}" ] || exit 1\n'
+                         'case "$1" in\n'
                          'cat-file) exit 0;;\n'
                          'rev-parse) printf "%s\\n" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;\n'
                          'ls-tree) printf "100644 blob fake\\t%s\\n" "$4";;\n'
                          'show) cat "$FAKE_SOURCE/${2#*:}";;\n'
                          '*) exit 1;; esac')
-        env = dict(self.env, FAKE_SOURCE=str(source))
+        env = dict(self.env, FAKE_SOURCE=str(source), LD_TEST_INJECTION="1", DYLD_TEST_INJECTION="1")
         args = ["python3", str(ROOT / "tools/verify-release.py"), "--source", "a" * 40,
                 "--version", "v2.0.0-rc.1", "--payload-sha256", payload_hash,
                 "--bootstrap-sha256", bootstrap_hash, "--bootstrap-file", str(candidate_path),
@@ -247,7 +248,8 @@ class PayloadTests(unittest.TestCase):
             shutil.copytree(ROOT / name, source / name)
         shutil.copy(ROOT / "install.sh", source / "install.sh")
         (source / "payload-version").write_text("v2.0.0-rc.1\n")
-        env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
+        env = {key: value for key, value in os.environ.items() if not key.upper().startswith("GIT_")}
+        env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
         def git(*args):
             return subprocess.check_output(["git", *args], cwd=source, env=env, stderr=subprocess.PIPE).decode().strip()
         git("init", "--quiet", "--template=")
@@ -274,6 +276,26 @@ class PayloadTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(commit, result.stdout)
         self.assertIn(payload_hash, result.stdout)
+        (source / "install/components/example.sh").write_text("replacement tree\n")
+        git("add", "--", "install/components/example.sh")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false",
+            "commit", "--quiet", "-m", "replacement tree")
+        replacement = git("rev-parse", "HEAD")
+        git("replace", commit, replacement)
+        self.assertEqual(git("show", commit + ":install/components/example.sh"), "replacement tree")
+        result = verify(args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        hostile = dict(env, GIT_DIR=str(self.root / "missing-git"), GIT_WORK_TREE=str(self.root / "missing-work"),
+                       GIT_COMMON_DIR=str(self.root / "missing-common"),
+                       GIT_OBJECT_DIRECTORY=str(self.root / "missing-objects"),
+                       GIT_ALTERNATE_OBJECT_DIRECTORIES=str(self.root / "missing-alternates"), GIT_CONFIG_COUNT="1",
+                       GIT_CONFIG_KEY_0="core.repositoryformatversion", GIT_CONFIG_VALUE_0="99")
+        result = subprocess.run(args, cwd=source, env=hostile, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        bad = args.copy()
+        bad[bad.index("--payload-sha256") + 1] = "0" * 64
+        self.assertIn("payload digest differs", verify(bad).stderr)
+        git("replace", "-d", commit)
         bad = args.copy()
         bad[bad.index("--version") + 1] = "v2.0.0-rc.2"
         self.assertIn("source version mismatch", verify(bad).stderr)

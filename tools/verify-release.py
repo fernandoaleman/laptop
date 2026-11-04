@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -49,17 +50,21 @@ def main():
     running_verifier = pathlib.Path(__file__).read_bytes()
     if digest(running_verifier) != args.verifier_sha256:
         fail("running verifier differs from reviewed verifier digest")
-    subprocess.run(["git", "cat-file", "-e", args.source + "^{commit}"], cwd=ROOT, check=True)
-    resolved = subprocess.check_output(["git", "rev-parse", args.source + "^{commit}"], cwd=ROOT).decode().strip()
+    # Do not inherit Git overrides or dynamic-loader injection into Git.
+    git_env = {key: value for key, value in os.environ.items()
+               if not key.upper().startswith(("GIT_", "LD_", "DYLD_"))}
+    git_env.update(GIT_NO_REPLACE_OBJECTS="1", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull)
+    subprocess.run(["git", "cat-file", "-e", args.source + "^{commit}"], cwd=ROOT, env=git_env, check=True)
+    resolved = subprocess.check_output(["git", "rev-parse", args.source + "^{commit}"], cwd=ROOT, env=git_env).decode().strip()
     if resolved != args.source:
         fail("source must be the exact commit, not a tag object")
     # Read fixed blobs directly from the commit, not from a mutable checkout.
     blobs = {}
     for name in INPUTS:
-        entry = subprocess.check_output(["git", "ls-tree", args.source, "--", name], cwd=ROOT).decode()
+        entry = subprocess.check_output(["git", "ls-tree", args.source, "--", name], cwd=ROOT, env=git_env).decode()
         if not entry.startswith("100644 blob ") and not entry.startswith("100755 blob "):
             fail("missing or unsafe source file: " + name)
-        blobs[name] = subprocess.check_output(["git", "show", args.source + ":" + name], cwd=ROOT)
+        blobs[name] = subprocess.check_output(["git", "show", args.source + ":" + name], cwd=ROOT, env=git_env)
     if blobs["tools/verify-release.py"] != running_verifier:
         fail("running verifier differs from verifier in reviewed source commit")
     if blobs["payload-version"] != (args.version + "\n").encode():
