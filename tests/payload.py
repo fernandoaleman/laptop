@@ -241,6 +241,24 @@ class PayloadTests(unittest.TestCase):
         self.assertNotEqual(subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode, 0)
         self.assertIn("PAYLOAD_SHA256=\n", (ROOT / "install.sh").read_text())
 
+    def test_prepare_bootstrap_interrupted_before_publication(self):
+        output = self.root / "install-v2.0.0-rc.1.sh"
+        script = (
+            "import os, runpy, sys\n"
+            "def interrupted(*args):\n"
+            "    raise KeyboardInterrupt()\n"
+            "os.link = interrupted\n"
+            "sys.argv = [sys.argv[1], '--version', 'v2.0.0-rc.1', "
+            "'--payload-sha256', 'a' * 64, '--output', sys.argv[2]]\n"
+            "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+        )
+        result = subprocess.run(["python3", "-c", script, str(ROOT / "tools/prepare-bootstrap.py"), str(output)],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"KeyboardInterrupt", result.stderr)
+        self.assertFalse(output.exists())
+        self.assertEqual(list(self.root.glob(".bootstrap-*")), [])
+
     def test_release_verifier_real_git_success_and_identity(self):
         source = self.root / "git-source"
         source.mkdir()

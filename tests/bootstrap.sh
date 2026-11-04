@@ -154,6 +154,55 @@ fi
 grep -Fq 'could not inspect temporary directory' "$TEST_ROOT/assert-output"
 printf '%s\n' 'PASS: cleanup assertion rejects leftovers and traversal failures'
 
+# Run the installer's actual cleanup function in an isolated Bash EXIT trap.
+sed -n '/^cleanup() {/,/^}/p' "$ROOT/install.sh" >"$TEST_ROOT/cleanup-function"
+cat >"$TEST_ROOT/cleanup-test" <<'EOF'
+set -eu
+source "$TEST_ROOT/cleanup-function"
+rm() {
+  printf '%s\n' "$2" >>"$TEST_ROOT/cleanup-log"
+  if [ "$2" = "$CANDIDATE" ]; then return 1; fi
+  /bin/rm "$@"
+}
+CANDIDATE="$TEST_ROOT/candidate"
+TEMP_DIR="$TEST_ROOT/gum-temp"
+PAYLOAD_TEMP="$TEST_ROOT/payload-temp"
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+case "$1" in
+  INT | TERM) kill -s "$1" "$$" ;;
+  *) exit "$1" ;;
+esac
+EOF
+export TEST_ROOT
+for scenario in 0 37 INT TERM; do
+  case "$scenario" in
+  INT) expected_status=130 ;;
+  TERM) expected_status=143 ;;
+  *) expected_status=$scenario ;;
+  esac
+  mkdir -p "$TEST_ROOT/gum-temp" "$TEST_ROOT/payload-temp"
+  : >"$TEST_ROOT/candidate"
+  : >"$TEST_ROOT/cleanup-log"
+  actual_status=0
+  /bin/bash "$TEST_ROOT/cleanup-test" "$scenario" >"$TEST_ROOT/cleanup-output" 2>&1 || actual_status=$?
+  [ "$actual_status" -eq "$expected_status" ] || {
+    printf 'FAIL: cleanup changed exit status %s to %s\n' "$expected_status" "$actual_status" >&2
+    exit 1
+  }
+  [ "$(wc -l <"$TEST_ROOT/cleanup-log")" -eq 3 ] || {
+    printf '%s\n' 'FAIL: cleanup did not attempt all paths' >&2
+    exit 1
+  }
+  [ -f "$TEST_ROOT/candidate" ] && [ ! -e "$TEST_ROOT/gum-temp" ] && [ ! -e "$TEST_ROOT/payload-temp" ] || {
+    printf '%s\n' 'FAIL: cleanup failure affected remaining paths' >&2
+    exit 1
+  }
+  grep -Fq 'Warning: could not remove Gum candidate:' "$TEST_ROOT/cleanup-output"
+done
+printf '%s\n' 'PASS: cleanup attempts all paths and preserves exit status'
+
 file_metadata() {
   local result
   if result=$(stat -f '%i %z %m' "$1" 2>/dev/null); then
