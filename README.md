@@ -113,9 +113,12 @@ Run the static checks with ShellCheck, shfmt, typos, and actionlint installed:
 make check
 ```
 
-This checks Bash syntax, shell lint, formatting, spelling, and workflow semantics
-without running the installer. CI runs these checks on Linux; it does not test
-macOS behavior.
+This checks Bash syntax, shell lint, formatting, spelling, workflow semantics,
+and isolated tests without installing anything. CI runs these checks on Linux
+and runs the bootstrap fixtures with Apple's bundled Bash on macOS 26 and 27.
+GitHub-hosted macOS runners have preinstalled development tools, so passing
+fixtures do not prove fresh-Mac installation. Test installation separately on an
+explicitly authorized Apple Silicon Mac.
 The commit-message hook enforces Conventional Commits, such as
 `feat: add development tooling`.
 
