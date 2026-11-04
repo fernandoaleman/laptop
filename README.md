@@ -98,6 +98,10 @@ performs only platform validation and the verified Gum installation; it does
 not yet install Homebrew or the rest of the machine. Live installation requires
 explicit approval. Run the isolated fixture tests with `make test`.
 
+The bootstrap installs Gum at `~/.local/bin/gum` and invokes it by absolute
+path. A matching verified binary is reused offline. Adding `~/.local/bin` to
+PATH is deferred to the future dotfiles setup.
+
 For development, run `make setup` to check the required tools and install
 missing Homebrew formulae and prek Git hooks. Existing non-prek hooks are
 preserved and must be resolved before setup can install hooks. Prek supplies

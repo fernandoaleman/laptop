@@ -51,6 +51,13 @@ case "$3" in
     else
       printf '%s\n' "$actual"
     fi ;;
+  */gum)
+    actual=$("$REAL_SHASUM" "$@") || exit 1
+    if [ "${actual%% *}" = "$TEST_FIXTURE_BINARY_SHA256" ] && [ "${FAIL_BINARY_HASH:-0}" = 0 ]; then
+      printf '74cab6235944c0e39e69edfceef81150064687dd29cacec5ec1e954637f55d0c  %s\n' "$3"
+    else
+      printf '%s\n' "$actual"
+    fi ;;
   *) exec "$REAL_SHASUM" "$@" ;;
 esac
 EOF
@@ -72,6 +79,9 @@ cat >"$payload/gum" <<'EOF'
 printf '%s\n' 'fixture gum style'
 EOF
 chmod +x "$payload/gum"
+TEST_FIXTURE_BINARY_SHA256=$("$REAL_SHASUM" -a 256 "$payload/gum")
+TEST_FIXTURE_BINARY_SHA256=${TEST_FIXTURE_BINARY_SHA256%% *}
+export TEST_FIXTURE_BINARY_SHA256
 TEST_ARCHIVE="$TEST_ROOT/gum-fixture.tar.gz"
 export TEST_ARCHIVE
 tar -czf "$TEST_ARCHIVE" -C "$TEST_ROOT/payload" \
@@ -143,10 +153,16 @@ new_home
 [ -x "$HOME/.local/bin/gum" ] || exit 1
 printf '%s\n' 'PASS: verified Gum installation'
 ln "$HOME/.local/bin/gum" "$TEST_ROOT/reused-gum"
-/bin/bash "$ROOT/install.sh" --gum-only >"$TEST_ROOT/output"
+before=$(stat -f '%i %z %m' "$HOME/.local/bin/gum" 2>/dev/null || stat -c '%i %s %Y' "$HOME/.local/bin/gum")
+before_hash=$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum")
+curl_count=$(wc -l <"$TEST_CURL_LOG")
+env FAIL_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only >"$TEST_ROOT/output"
 grep -q 'fixture gum style' "$TEST_ROOT/output"
 [ "$HOME/.local/bin/gum" -ef "$TEST_ROOT/reused-gum" ] || exit 1
-printf '%s\n' 'PASS: matching Gum reused'
+after=$(stat -f '%i %z %m' "$HOME/.local/bin/gum" 2>/dev/null || stat -c '%i %s %Y' "$HOME/.local/bin/gum")
+[ "$before" = "$after" ] && [ "$before_hash" = "$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum")" ] || exit 1
+[ "$curl_count" = "$(wc -l <"$TEST_CURL_LOG")" ] || exit 1
+printf '%s\n' 'PASS: matching Gum reused offline without curl or replacement'
 
 new_home
 mkdir -p "$HOME/.local/bin"
@@ -154,6 +170,14 @@ printf 'unrelated\n' >"$HOME/.local/bin/gum"
 chmod +x "$HOME/.local/bin/gum"
 expect_fail 'unknown existing Gum' 'refusing to overwrite' /bin/bash "$ROOT/install.sh" --gum-only
 grep -q unrelated "$HOME/.local/bin/gum"
+
+new_home
+mkdir -p "$HOME/.local/bin"
+cp "$payload/gum" "$HOME/.local/bin/gum"
+printf '# modified\n' >>"$HOME/.local/bin/gum"
+modified_hash=$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum")
+expect_fail 'modified existing Gum' 'refusing to overwrite' env FAIL_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only
+[ "$modified_hash" = "$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum")" ] || exit 1
 
 new_home
 mkdir -p "$HOME/.local/bin"
@@ -167,6 +191,7 @@ expect_fail 'existing Gum directory' 'not an executable regular file' /bin/bash 
 new_home
 expect_fail 'download failure' 'Could not download Gum' env FAIL_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only
 expect_fail 'checksum mismatch' 'checksum mismatch' env TEST_FIXTURE_SHA256=incorrect /bin/bash "$ROOT/install.sh" --gum-only
+expect_fail 'binary checksum mismatch' 'Gum binary checksum mismatch' env FAIL_BINARY_HASH=1 /bin/bash "$ROOT/install.sh" --gum-only
 expect_fail 'destination creation failure' 'Could not create ~/.local/bin' env FAIL_MKDIR=1 /bin/bash "$ROOT/install.sh" --gum-only
 
 new_home

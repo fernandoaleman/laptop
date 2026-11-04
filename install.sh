@@ -6,6 +6,8 @@ set -eu
 GUM_VERSION=2.0.2
 # Reviewed against the official v2.0.2 checksum list and release artifact.
 GUM_ARCHIVE_SHA256=4777a69b1170b8db23c95d5889fb32186cfda1a3ac950d339aa17e3513633890
+# SHA-256 of the Gum binary extracted from the verified official archive.
+GUM_BINARY_SHA256=74cab6235944c0e39e69edfceef81150064687dd29cacec5ec1e954637f55d0c
 GUM_URL=https://github.com/charmbracelet/gum/releases/download/v2.0.2/gum_2.0.2_Darwin_arm64.tar.gz
 GUM_MEMBER=gum_2.0.2_Darwin_arm64/gum
 GUM_BIN="${HOME}/.local/bin/gum"
@@ -58,6 +60,14 @@ log_error() {
 
 install_gum() {
   [ ! -L "${HOME}/.local" ] && [ ! -L "${HOME}/.local/bin" ] || fail 'Refusing to install through a symlinked destination directory.'
+  if [ -L "$GUM_BIN" ]; then fail 'Refusing to replace a Gum symlink.'; fi
+  if [ -e "$GUM_BIN" ]; then
+    [ -f "$GUM_BIN" ] && [ -x "$GUM_BIN" ] || fail 'Existing Gum path is not an executable regular file.'
+    existing_hash=$(shasum -a 256 "$GUM_BIN") || fail 'Could not hash existing Gum.'
+    [ "${existing_hash%% *}" = "$GUM_BINARY_SHA256" ] || fail 'Existing Gum differs from the verified binary; refusing to overwrite it.'
+    log_success "Gum $GUM_VERSION already installed"
+    return
+  fi
   umask 077
   TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/laptop-gum.XXXXXX") || fail 'Could not create a private temporary directory.'
   trap cleanup EXIT
@@ -83,16 +93,7 @@ gum_2.0.2_Darwin_arm64/gum'
   tar -xOzf "$archive" "$GUM_MEMBER" >"$TEMP_DIR/gum" || fail 'Could not extract the Gum binary.'
   [ -s "$TEMP_DIR/gum" ] || fail 'The extracted Gum binary is empty.'
   binary_hash=$(shasum -a 256 "$TEMP_DIR/gum") || fail 'Could not hash the Gum binary.'
-  binary_hash=${binary_hash%% *}
-
-  if [ -L "$GUM_BIN" ]; then fail 'Refusing to replace a Gum symlink.'; fi
-  if [ -e "$GUM_BIN" ]; then
-    [ -f "$GUM_BIN" ] && [ -x "$GUM_BIN" ] || fail 'Existing Gum path is not an executable regular file.'
-    existing_hash=$(shasum -a 256 "$GUM_BIN") || fail 'Could not hash existing Gum.'
-    [ "${existing_hash%% *}" = "$binary_hash" ] || fail 'Existing Gum differs from the verified binary; refusing to overwrite it.'
-    log_success "Gum $GUM_VERSION already installed"
-    return
-  fi
+  [ "${binary_hash%% *}" = "$GUM_BINARY_SHA256" ] || fail 'Gum binary checksum mismatch.'
 
   bin_dir="${HOME}/.local/bin"
   mkdir -p "$bin_dir" || fail 'Could not create ~/.local/bin.'
