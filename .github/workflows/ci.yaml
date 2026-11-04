@@ -62,3 +62,5 @@ jobs:
           test "$(uname -m)" = arm64
       - name: Test fixtures with macOS Bash
         run: /bin/bash tests/bootstrap.sh
+      - name: Test payload fixtures
+        run: python3 tests/payload.py

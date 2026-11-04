@@ -102,6 +102,33 @@ The bootstrap installs Gum at `~/.local/bin/gum` and invokes it by absolute
 path. A matching verified binary is reused offline. Adding `~/.local/bin` to
 PATH is deferred to the future dotfiles setup.
 
+The modular payload is a development checkpoint, not a released installer.
+`tools/build-payload.py` builds a gzip-compressed ustar archive from an explicit
+file list, excluding `install.sh`. It normalizes archive metadata and uses the
+development version in `payload-version`. Build with Python 3 and its standard
+library; byte-for-byte release builds require a pinned Python/zlib environment.
+For a local development archive, run
+`python3 tools/build-payload.py /tmp/laptop-payload-0.0.0-dev.tar.gz`; the
+builder refuses to overwrite an existing output.
+Run `python3 tests/payload.py` for isolated packaging, integrity, archive-safety,
+and runner tests. The payload runner supports `--check` and `--apply`; its
+current components are harmless examples and require an absolute payload root
+and Gum path. The tests inject a fixture URL and its real digest into a temporary
+bootstrap copy; this does not bypass verification in the release bootstrap.
+With verified Gum already installed at `~/.local/bin/gum`, check the harmless
+components directly from a trusted development checkout with
+`PAYLOAD_ROOT="$PWD" GUM_BIN="$HOME/.local/bin/gum" /bin/bash install/run.sh --check`.
+This direct invocation trusts the local checkout; it is not release verification.
+
+The bootstrap's payload mode remains unavailable until a real versioned payload
+is published and its URL and verified SHA-256 are reviewed into the matching
+bootstrap. A reviewed, version-pinned bootstrap digest must be distributed via
+a trusted channel before a production command is offered; a checksum downloaded
+beside an archive is not an independent trust source. No Homebrew or full
+provisioning is implemented. Failed runs clean owned temporary directories;
+after a hard kill or power loss, an owned temporary directory may remain.
+Once enabled, `--payload` installs or verifies Gum before checking the payload.
+
 For development, run `make setup` to check the required tools and install
 missing Homebrew formulae and prek Git hooks. Existing non-prek hooks are
 preserved and must be resolved before setup can install hooks. Prek supplies
