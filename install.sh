@@ -81,11 +81,16 @@ install_gum() {
   trap 'exit 143' TERM
 
   archive="$TEMP_DIR/gum.tar.gz"
-  curl -fsSL -o "$archive" "$GUM_URL" || fail 'Could not download Gum.'
+  # The verified v2.0.2 archive is 4.7 MB; cap download at 8 MiB.
+  (set +o posix && ulimit -f 8192 && curl -fsSL -o "$archive" "$GUM_URL") || fail 'Could not download Gum within the size limit.'
   archive_hash=$(shasum -a 256 "$archive") || fail 'Could not hash the Gum archive.'
   [ "${archive_hash%% *}" = "$GUM_ARCHIVE_SHA256" ] || fail 'Gum archive checksum mismatch.'
 
-  members=$(tar -tzf "$archive") || fail 'Could not inspect the Gum archive.'
+  # Bound the expanded tar (officially about 14 MB) and each listing.
+  unpacked="$TEMP_DIR/gum.tar"
+  (set +o posix && ulimit -f 24576 && gzip -dc "$archive" >"$unpacked") || fail 'Could not decompress Gum within the size limit.'
+  (set +o posix && ulimit -f 64 && tar -tf "$unpacked" >"$TEMP_DIR/member-names") || fail 'Could not inspect Gum archive within the listing limit.'
+  members=$(cat "$TEMP_DIR/member-names") || fail 'Could not read Gum archive members.'
   expected_members='gum_2.0.2_Darwin_arm64/LICENSE
 gum_2.0.2_Darwin_arm64/README.md
 gum_2.0.2_Darwin_arm64/completions/gum.bash
@@ -94,9 +99,10 @@ gum_2.0.2_Darwin_arm64/completions/gum.zsh
 gum_2.0.2_Darwin_arm64/manpages/gum.1.gz
 gum_2.0.2_Darwin_arm64/gum'
   [ "$members" = "$expected_members" ] || fail 'Unexpected or unsafe Gum archive contents.'
-  tar -tvzf "$archive" >"$TEMP_DIR/members.txt" || fail 'Could not inspect Gum archive types.'
-  awk 'substr($0, 1, 1) != "-" { bad = 1 } END { exit bad }' "$TEMP_DIR/members.txt" || fail 'Gum archive contains non-regular entries.'
-  tar -xOzf "$archive" "$GUM_MEMBER" >"$TEMP_DIR/gum" || fail 'Could not extract the Gum binary.'
+  (set +o posix && ulimit -f 64 && tar -tvf "$unpacked" >"$TEMP_DIR/members.txt") || fail 'Could not inspect Gum archive types within the listing limit.'
+  awk 'substr($0, 1, 1) != "-" { bad = 1 } END { if (NR != 7 || bad) exit 1 }' "$TEMP_DIR/members.txt" || fail 'Gum archive contains non-regular entries.'
+  # The verified binary is 13.9 MB; cap the extracted file at 16 MiB.
+  (set +o posix && ulimit -f 16384 && tar -xOf "$unpacked" "$GUM_MEMBER" >"$TEMP_DIR/gum") || fail 'Could not extract Gum within the size limit.'
   [ -s "$TEMP_DIR/gum" ] || fail 'The extracted Gum binary is empty.'
   binary_hash=$(shasum -a 256 "$TEMP_DIR/gum") || fail 'Could not hash the Gum binary.'
   [ "${binary_hash%% *}" = "$GUM_BINARY_SHA256" ] || fail 'Gum binary checksum mismatch.'

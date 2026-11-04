@@ -8,7 +8,9 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 REAL_SHASUM=$(command -v shasum)
-export REAL_SHASUM
+REAL_TAR=$(command -v tar)
+REAL_DD=$(command -v dd)
+export REAL_SHASUM REAL_TAR REAL_DD
 STUBS="$TEST_ROOT/stubs"
 mkdir -p "$STUBS" "$TEST_ROOT/tmp" "$TEST_ROOT/payload/gum_2.0.2_Darwin_arm64/completions" "$TEST_ROOT/payload/gum_2.0.2_Darwin_arm64/manpages"
 
@@ -39,7 +41,23 @@ cat >"$STUBS/curl" <<'EOF'
 printf 'download\n' >> "$TEST_CURL_LOG"
 [ "${FAIL_DOWNLOAD:-0}" = 0 ] || exit 1
 [ "$1" = -fsSL ] && [ "$2" = -o ] || exit 1
+if [ "${PARTIAL_DOWNLOAD:-0}" = 1 ]; then
+  printf partial > "$3"
+  exit 1
+fi
+if [ "${TRUNCATED_DOWNLOAD:-0}" = 1 ]; then
+  printf partial > "$3"
+  exit 0
+fi
 cp "$TEST_ARCHIVE" "$3"
+EOF
+cat >"$STUBS/tar" <<'EOF'
+#!/bin/sh
+case "${TEST_GUM_TAR_FAILURE:-}:$1" in
+  listing:-tf|metadata:-tvf) exec "$REAL_DD" if=/dev/zero bs=1048576 count=1 2>/dev/null ;;
+  extraction:-xOf) exec "$REAL_DD" if=/dev/zero bs=1048576 count=17 2>/dev/null ;;
+  *) exec "$REAL_TAR" "$@" ;;
+esac
 EOF
 cat >"$STUBS/shasum" <<'EOF'
 #!/bin/sh
@@ -271,6 +289,34 @@ after_curl_count=$(wc -l <"$TEST_CURL_LOG") || {
 }
 printf '%s\n' 'PASS: matching Gum reused offline without curl or replacement'
 
+# Exercise successful limits with a compressed archive and executable close to
+# the real release sizes, without downloading or running the real binary.
+mkdir -p "$TEST_ROOT/representative"
+cp -R "$payload" "$TEST_ROOT/representative/"
+representative="$TEST_ROOT/representative/gum_2.0.2_Darwin_arm64"
+printf '#!/bin/sh\nexit 0\n' >"$representative/gum"
+"$REAL_DD" if=/dev/zero bs=1048576 count=14 2>/dev/null >>"$representative/gum"
+chmod +x "$representative/gum"
+"$REAL_DD" if=/dev/urandom of="$representative/LICENSE" bs=1048576 count=5 2>/dev/null
+tar -czf "$TEST_ROOT/representative.tar.gz" -C "$TEST_ROOT/representative" \
+  gum_2.0.2_Darwin_arm64/LICENSE \
+  gum_2.0.2_Darwin_arm64/README.md \
+  gum_2.0.2_Darwin_arm64/completions/gum.bash \
+  gum_2.0.2_Darwin_arm64/completions/gum.fish \
+  gum_2.0.2_Darwin_arm64/completions/gum.zsh \
+  gum_2.0.2_Darwin_arm64/manpages/gum.1.gz \
+  gum_2.0.2_Darwin_arm64/gum
+[ "$(wc -c <"$TEST_ROOT/representative.tar.gz")" -ge 5242880 ] || exit 1
+[ "$(wc -c <"$representative/gum")" -ge 14680064 ] || exit 1
+representative_hash=$("$REAL_SHASUM" -a 256 "$TEST_ROOT/representative.tar.gz")
+representative_binary_hash=$("$REAL_SHASUM" -a 256 "$representative/gum")
+new_home
+env TEST_ARCHIVE="$TEST_ROOT/representative.tar.gz" TEST_FIXTURE_SHA256="${representative_hash%% *}" \
+  TEST_FIXTURE_BINARY_SHA256="${representative_binary_hash%% *}" /bin/bash "$ROOT/install.sh" --gum-only >"$TEST_ROOT/output"
+[ -x "$HOME/.local/bin/gum" ] || exit 1
+assert_clean_tmp "$TMPDIR" || exit 1
+printf '%s\n' 'PASS: size-representative Gum archive installation'
+
 new_home
 mkdir -p "$HOME/.local/bin"
 printf 'unrelated\n' >"$HOME/.local/bin/gum"
@@ -300,6 +346,31 @@ expect_fail 'download failure' 'Could not download Gum' env FAIL_DOWNLOAD=1 /bin
 expect_fail 'checksum mismatch' 'checksum mismatch' env TEST_FIXTURE_SHA256=incorrect /bin/bash "$ROOT/install.sh" --gum-only
 expect_fail 'binary checksum mismatch' 'Gum binary checksum mismatch' env FAIL_BINARY_HASH=1 /bin/bash "$ROOT/install.sh" --gum-only
 expect_fail 'destination creation failure' 'Could not create ~/.local/bin' env FAIL_MKDIR=1 /bin/bash "$ROOT/install.sh" --gum-only
+
+new_home
+printf 'untouched\n' >"$TEST_ROOT/unrelated"
+"$REAL_DD" if=/dev/zero of="$TEST_ROOT/large-download" bs=1048576 count=9 2>/dev/null
+expect_fail 'oversized download' 'Could not download Gum within the size limit' env TEST_ARCHIVE="$TEST_ROOT/large-download" /bin/bash "$ROOT/install.sh" --gum-only
+expect_fail 'interrupted download' 'Could not download Gum' env PARTIAL_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only
+expect_fail 'truncated download' 'Gum archive checksum mismatch' env TRUNCATED_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only
+
+"$REAL_DD" if=/dev/zero bs=1048576 count=25 2>/dev/null | gzip >"$TEST_ROOT/large-expanded.gz"
+large_hash=$("$REAL_SHASUM" -a 256 "$TEST_ROOT/large-expanded.gz")
+expect_fail 'oversized decompression' 'Could not decompress Gum within the size limit' env TEST_ARCHIVE="$TEST_ROOT/large-expanded.gz" TEST_FIXTURE_SHA256="${large_hash%% *}" /bin/bash "$ROOT/install.sh" --gum-only
+printf 'not gzip\n' >"$TEST_ROOT/malformed.gz"
+malformed_hash=$("$REAL_SHASUM" -a 256 "$TEST_ROOT/malformed.gz")
+expect_fail 'malformed gzip' 'Could not decompress Gum' env TEST_ARCHIVE="$TEST_ROOT/malformed.gz" TEST_FIXTURE_SHA256="${malformed_hash%% *}" /bin/bash "$ROOT/install.sh" --gum-only
+printf 'not tar\n' | gzip >"$TEST_ROOT/malformed-tar.gz"
+malformed_hash=$("$REAL_SHASUM" -a 256 "$TEST_ROOT/malformed-tar.gz")
+expect_fail 'malformed tar listing' 'Could not inspect Gum archive' env TEST_ARCHIVE="$TEST_ROOT/malformed-tar.gz" TEST_FIXTURE_SHA256="${malformed_hash%% *}" /bin/bash "$ROOT/install.sh" --gum-only
+expect_fail 'oversized member listing' 'Could not inspect Gum archive within the listing limit' env TEST_GUM_TAR_FAILURE=listing /bin/bash "$ROOT/install.sh" --gum-only
+expect_fail 'oversized metadata listing' 'Could not inspect Gum archive types within the listing limit' env TEST_GUM_TAR_FAILURE=metadata /bin/bash "$ROOT/install.sh" --gum-only
+expect_fail 'oversized binary extraction' 'Could not extract Gum within the size limit' env TEST_GUM_TAR_FAILURE=extraction /bin/bash "$ROOT/install.sh" --gum-only
+[ ! -e "$HOME/.local/bin/gum" ] && [ "$(cat "$TEST_ROOT/unrelated")" = untouched ] || {
+  printf '%s\n' 'FAIL: security failure changed unrelated files or installed Gum' >&2
+  exit 1
+}
+printf '%s\n' 'PASS: resource-limit failures preserve unrelated files'
 
 new_home
 mkdir -p "$HOME/.local/bin"
