@@ -114,8 +114,10 @@ make check
 ```
 
 This checks Bash syntax, shell lint, formatting, spelling, workflow semantics,
-and isolated tests without installing anything. CI runs these checks on Linux
-and runs the bootstrap fixtures with Apple's bundled Bash on macOS 26 and 27.
+and isolated tests without installing anything. CI runs on pushes to `master`
+and pull requests targeting `master`: it runs these checks on Linux and the
+bootstrap fixtures with Apple's bundled Bash on macOS 27. macOS 26 is not
+included in the automated CI matrix.
 GitHub-hosted macOS runners have preinstalled development tools, so passing
 fixtures do not prove fresh-Mac installation. Test installation separately on an
 explicitly authorized Apple Silicon Mac.
