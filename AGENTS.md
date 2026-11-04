@@ -18,6 +18,26 @@
 - The default interactive shell (Bash versus Zsh) remains undecided. Installer scripts use Bash.
 - Do not create or modify agent skills without separate approval; shared skills belong under `.agents/skills` when approved.
 
+## Draft pull request workflow
+
+- Use a GitHub draft pull request as the default collaboration and review mechanism for every feature branch that changes repository files.
+- Create feature branches from the latest approved `master`.
+- Implement only the current approved task or checkpoint.
+- Group changes into logical Conventional Commits rather than committing after every file edit.
+- Run `make check` and applicable validation before proposing a commit.
+- After approval to commit and publish, push the feature branch and create a draft PR against `master`, or update its existing draft PR.
+- Keep the same draft PR open throughout implementation and iterative review.
+- Report the draft PR URL, commit SHA, changed files, validation results, and unresolved issues after each published checkpoint.
+- Use the draft PR to support external review and follow-up changes.
+- Do not automatically mark draft PRs ready for review.
+- Mark a draft PR ready only after explicit approval that implementation is complete.
+- Once ready, verify GitHub Actions CI, Codex review, and any required checks.
+- Squash-merge ("squerge") only with explicit approval.
+- Do not treat the existence of a draft PR as authorization for additional commits, pushes, or implementation work.
+- Stop after every assigned task and wait for the next instruction.
+
+A draft PR is the default workflow, not automatic authorization to publish changes. Existing mandatory approval gates remain in effect unless the user explicitly authorizes a bounded operation.
+
 ## Orchestrator execution and approval policy
 
 ### Autonomous execution within approved scope
