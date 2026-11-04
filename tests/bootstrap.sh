@@ -107,6 +107,34 @@ new_home() {
   mkdir -p "$HOME"
 }
 
+assert_clean_tmp() {
+  local entries
+  if ! entries=$(find "$1" -mindepth 1 -print); then
+    printf 'FAIL: could not inspect temporary directory: %s\n' "$1" >&2
+    return 1
+  fi
+  if [ -n "$entries" ]; then
+    printf 'FAIL: temporary files remain in %s\n' "$1" >&2
+    return 1
+  fi
+}
+
+# Exercise the cleanup assertion itself, including an actual traversal failure.
+assert_clean_tmp "$TMPDIR"
+mkdir "$TEST_ROOT/nonempty"
+printf 'leftover\n' >"$TEST_ROOT/nonempty/file"
+if assert_clean_tmp "$TEST_ROOT/nonempty" >"$TEST_ROOT/assert-output" 2>&1; then
+  printf '%s\n' 'FAIL: cleanup assertion accepted remaining files' >&2
+  exit 1
+fi
+grep -Fq 'temporary files remain' "$TEST_ROOT/assert-output"
+if assert_clean_tmp "$TEST_ROOT/missing" >"$TEST_ROOT/assert-output" 2>&1; then
+  printf '%s\n' 'FAIL: cleanup assertion accepted a failed traversal' >&2
+  exit 1
+fi
+grep -Fq 'could not inspect temporary directory' "$TEST_ROOT/assert-output"
+printf '%s\n' 'PASS: cleanup assertion rejects leftovers and traversal failures'
+
 expect_fail() {
   label=$1
   diagnostic=$2
@@ -120,10 +148,7 @@ expect_fail() {
     cat "$TEST_ROOT/output" >&2
     exit 1
   fi
-  if find "$TMPDIR" -mindepth 1 -print | grep . >/dev/null; then
-    printf 'FAIL: %s left temporary files\n' "$label" >&2
-    exit 1
-  fi
+  assert_clean_tmp "$TMPDIR" || exit 1
   printf 'PASS: %s\n' "$label"
 }
 
