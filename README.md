@@ -1,6 +1,6 @@
 # Laptop
 
-[![Test Status](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml/badge.svg)](https://github.com/fernandoaleman/laptop/actions/workflows/test.yml)
+[![Test Status](https://github.com/fernandoaleman/laptop/actions/workflows/ci.yaml/badge.svg)](https://github.com/fernandoaleman/laptop/actions/workflows/ci.yaml)
 
 Laptop is a script to set up a macOS laptop for web development.
 
@@ -22,32 +22,13 @@ curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/maste
 Run the script:
 
 ```sh
-sh laptop 2>&1 | tee ~/laptop.log
+bash laptop 2>&1 | tee ~/laptop.log
 ```
 
 Optionally, review the log:
 
 ```sh
 less ~/laptop.log
-
-## Install osx
-
-Download the script:
-
-```sh
-curl --remote-name https://raw.githubusercontent.com/fernandoaleman/laptop/master/osx
-```
-
-Run the script:
-
-```sh
-sh osx 2>&1 | tee ~/osx.log
-```
-
-Optionally, review the log:
-
-```sh
-less ~/osx.log
 ```
 
 ## Debugging
@@ -72,14 +53,14 @@ Unix tools:
 - [OpenSSL] for Transport Layer Security (TLS)
 - [RCM] for managing company and personal dotfiles
 - [Tmux] for saving project state and switching between projects
-- [Fish] as your shell
+- [Zsh] as your shell
 
 [Bat]: https://github.com/sharkdp/bat
 [Git]: https://git-scm.com/
 [OpenSSL]: https://www.openssl.org/
 [RCM]: https://github.com/thoughtbot/rcm
 [Tmux]: https://tmux.github.io/
-[Fish]: https://www.fishshell.com/
+[Zsh]: https://www.zsh.org/
 
 GitHub tools:
 
@@ -111,21 +92,24 @@ See the `laptop` script for examples.
 
 ## Testing
 
-Follow shell style guidelines by using [ShellCheck].
+For development, run `make setup` to check the required tools and install
+missing Homebrew formulae and prek Git hooks. Existing non-prek hooks are
+preserved and must be resolved before setup can install hooks. Prek supplies
+the pinned committed executable in its managed hook environment.
+
+Run the static checks with ShellCheck, shfmt, typos, and actionlint installed:
 
 ```sh
-brew install shellcheck
+make check
 ```
 
-[ShellCheck]: https://www.shellcheck.net/about.html
+This checks Bash syntax, shell lint, formatting, spelling, and workflow semantics
+without running the installer. CI runs these checks on Linux; it does not test
+macOS behavior.
+The commit-message hook enforces Conventional Commits, such as
+`feat: add development tooling`.
 
-Test laptop script
-
-```sh
-shellcheck laptop
-```
-
-Test customizations script
+To check a local customization script separately:
 
 ```sh
 shellcheck ~/.laptop.local
