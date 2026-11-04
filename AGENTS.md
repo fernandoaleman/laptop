@@ -25,6 +25,15 @@
 - Use `Refs` for partial work and `Closes` only when merging fully satisfies the issue.
 - Require explicit authorization for tracker changes. Close issues and milestones only when their acceptance criteria are satisfied.
 
+## Provisioning inventory and approval policy
+
+- Before adding packages, Brewfile entries, applications, tools, services, runtimes, macOS defaults, or shell configuration, compare relevant implementations in the personal laptop repository, `~/code/fernandoaleman/dots-omarchy`, `~/code/fernandoaleman/dotfiles`, and `~/code/1000bulbs/laptop`, plus upstream Omarchy when appropriate. Inspect references read-only; develop only in the personal laptop repository.
+- Produce an itemized inventory with each candidate's name, purpose, source, dependencies, potential conflicts or duplication, and recommended disposition: Install, Skip, Replace, or Defer.
+- Obtain explicit user approval for each candidate before adding it to provisioning components, Brewfiles, or configuration. Never copy an entire package list or installation section without individual review.
+- Treat Homebrew and prerequisites; formulae and Brewfile entries; casks and graphical applications; CLI and developer tools; runtimes and version managers; background services and agents; macOS defaults and system preferences; interactive and login shell configuration; and dotfiles integration as separate decision categories. Stop at each category boundary until explicitly approved.
+- Revisit Bash versus Zsh before changing the interactive or login shell. Bash 3.2 installer compatibility does not decide the interactive shell. Do not change the login shell, shell startup files, or persistent PATH without separate approval.
+- Personal dotfiles belong to the future dots manager; do not automatically install, configure, or integrate it during laptop provisioning. Approval to implement an installer component is separate from approval to execute it on the MacBook.
+
 ## Draft pull request workflow
 
 - Use a GitHub draft pull request as the default collaboration and review mechanism for every feature branch that changes repository files.
