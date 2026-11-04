@@ -222,8 +222,23 @@ expect_fail 'destination creation failure' 'Could not create ~/.local/bin' env F
 new_home
 mkdir -p "$HOME/.local/bin"
 chmod 500 "$HOME/.local/bin"
-expect_fail 'unwritable destination' 'destination directory is not writable' /bin/bash "$ROOT/install.sh" --gum-only
+if [ ! -w "$HOME/.local/bin" ]; then
+  expect_fail 'unwritable destination permissions' 'destination directory is not writable' /bin/bash "$ROOT/install.sh" --gum-only
+else
+  printf '%s\n' 'INFO: destination permissions are writable to this user; testing the check with a stub'
+fi
 chmod 700 "$HOME/.local/bin"
+cat >"$TEST_ROOT/unwritable-bash-env" <<'EOF'
+# Simulate the destination write check for users who can bypass mode bits.
+[() {
+  case "$#:${1-}:${2-}" in
+    "3:-w:$HOME/.local/bin") return 1 ;;
+  esac
+  builtin [ "$@"
+}
+EOF
+expect_fail 'unwritable destination check' 'destination directory is not writable' env BASH_ENV="$TEST_ROOT/unwritable-bash-env" /bin/bash "$ROOT/install.sh" --gum-only
+assert_clean_tmp "$HOME/.local/bin" || exit 1
 
 printf 'unexpected\n' >"$TEST_ROOT/payload/extra"
 tar -czf "$TEST_ROOT/unsafe.tar.gz" -C "$TEST_ROOT/payload" extra
