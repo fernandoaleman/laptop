@@ -11,7 +11,9 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install pinned validation tools
         shell: bash
         run: |
@@ -39,3 +41,22 @@ jobs:
         run: make check
       - name: Check GitHub Actions workflow
         run: actionlint .github/workflows/ci.yaml
+  macos-bootstrap:
+    name: macos-bootstrap (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-26, xcode-27]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify runner platform
+        run: |
+          sw_vers
+          uname -m
+          /bin/bash --version
+          test "$(uname -m)" = arm64
+      - name: Test fixtures with macOS Bash
+        run: /bin/bash tests/bootstrap.sh

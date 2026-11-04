@@ -92,6 +92,16 @@ See the `laptop` script for examples.
 
 ## Testing
 
+The V2 bootstrap checkpoint can be checked without installing anything with
+`/bin/bash install.sh --check-platform`. `/bin/bash install.sh --gum-only`
+performs only platform validation and the verified Gum installation; it does
+not yet install Homebrew or the rest of the machine. Live installation requires
+explicit approval. Run the isolated fixture tests with `make test`.
+
+The bootstrap installs Gum at `~/.local/bin/gum` and invokes it by absolute
+path. A matching verified binary is reused offline. Adding `~/.local/bin` to
+PATH is deferred to the future dotfiles setup.
+
 For development, run `make setup` to check the required tools and install
 missing Homebrew formulae and prek Git hooks. Existing non-prek hooks are
 preserved and must be resolved before setup can install hooks. Prek supplies
@@ -103,9 +113,12 @@ Run the static checks with ShellCheck, shfmt, typos, and actionlint installed:
 make check
 ```
 
-This checks Bash syntax, shell lint, formatting, spelling, and workflow semantics
-without running the installer. CI runs these checks on Linux; it does not test
-macOS behavior.
+This checks Bash syntax, shell lint, formatting, spelling, workflow semantics,
+and isolated tests without installing anything. CI runs these checks on Linux
+and runs the bootstrap fixtures with Apple's bundled Bash on macOS 26 and 27.
+GitHub-hosted macOS runners have preinstalled development tools, so passing
+fixtures do not prove fresh-Mac installation. Test installation separately on an
+explicitly authorized Apple Silicon Mac.
 The commit-message hook enforces Conventional Commits, such as
 `feat: add development tooling`.
 
