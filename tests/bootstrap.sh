@@ -77,6 +77,7 @@ done
 cat >"$payload/gum" <<'EOF'
 #!/bin/sh
 printf '%s\n' 'fixture gum style'
+printf '%s\n' "$@"
 EOF
 chmod +x "$payload/gum"
 TEST_FIXTURE_BINARY_SHA256=$("$REAL_SHASUM" -a 256 "$payload/gum")
@@ -135,6 +136,50 @@ fi
 grep -Fq 'could not inspect temporary directory' "$TEST_ROOT/assert-output"
 printf '%s\n' 'PASS: cleanup assertion rejects leftovers and traversal failures'
 
+file_metadata() {
+  local result
+  if result=$(stat -f '%i %z %m' "$1" 2>/dev/null); then
+    printf '%s\n' "$result"
+  elif result=$(stat -c '%i %s %Y' "$1" 2>/dev/null); then
+    printf '%s\n' "$result"
+  else
+    printf 'FAIL: could not read file metadata: %s\n' "$1" >&2
+    return 1
+  fi
+}
+
+# Simulate both stat implementations and failed probes that emit stdout.
+stat() {
+  case "$STAT_CASE:${1-}:${2-}" in
+  'bsd:-f:%i %z %m' | 'gnu:-c:%i %s %Y') printf '%s\n' '11 22 33' ;;
+  *)
+    printf '%s\n' 'failed probe output'
+    return 1
+    ;;
+  esac
+}
+STAT_CASE=bsd
+[ "$(file_metadata fixture)" = '11 22 33' ] || {
+  printf '%s\n' 'FAIL: BSD stat format' >&2
+  exit 1
+}
+STAT_CASE=gnu
+[ "$(file_metadata fixture)" = '11 22 33' ] || {
+  printf '%s\n' 'FAIL: GNU stat format or probe contamination' >&2
+  exit 1
+}
+STAT_CASE=fail
+if file_metadata fixture >"$TEST_ROOT/stat-output" 2>/dev/null; then
+  printf '%s\n' 'FAIL: failed stat probes succeeded' >&2
+  exit 1
+fi
+[ ! -s "$TEST_ROOT/stat-output" ] || {
+  printf '%s\n' 'FAIL: failed stat probe output leaked' >&2
+  exit 1
+}
+unset -f stat
+printf '%s\n' 'PASS: BSD and GNU metadata formats and failed probes'
+
 expect_fail() {
   label=$1
   diagnostic=$2
@@ -178,15 +223,52 @@ new_home
 [ -x "$HOME/.local/bin/gum" ] || exit 1
 printf '%s\n' 'PASS: verified Gum installation'
 ln "$HOME/.local/bin/gum" "$TEST_ROOT/reused-gum"
-before=$(stat -f '%i %z %m' "$HOME/.local/bin/gum" 2>/dev/null || stat -c '%i %s %Y' "$HOME/.local/bin/gum")
-before_hash=$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum")
-curl_count=$(wc -l <"$TEST_CURL_LOG")
-env FAIL_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only >"$TEST_ROOT/output"
-grep -q 'fixture gum style' "$TEST_ROOT/output"
-[ "$HOME/.local/bin/gum" -ef "$TEST_ROOT/reused-gum" ] || exit 1
-after=$(stat -f '%i %z %m' "$HOME/.local/bin/gum" 2>/dev/null || stat -c '%i %s %Y' "$HOME/.local/bin/gum")
-[ "$before" = "$after" ] && [ "$before_hash" = "$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum")" ] || exit 1
-[ "$curl_count" = "$(wc -l <"$TEST_CURL_LOG")" ] || exit 1
+before=$(file_metadata "$HOME/.local/bin/gum") || exit 1
+before_hash=$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum") || {
+  printf '%s\n' 'FAIL: could not hash Gum before reuse' >&2
+  exit 1
+}
+curl_count=$(wc -l <"$TEST_CURL_LOG") || {
+  printf '%s\n' 'FAIL: could not count downloads before reuse' >&2
+  exit 1
+}
+env FAIL_DOWNLOAD=1 /bin/bash "$ROOT/install.sh" --gum-only >"$TEST_ROOT/output" || {
+  printf '%s\n' 'FAIL: offline Gum reuse failed' >&2
+  exit 1
+}
+grep -q 'fixture gum style' "$TEST_ROOT/output" || {
+  printf '%s\n' 'FAIL: Gum reuse output missing' >&2
+  exit 1
+}
+grep -Fq 'Gum 2.0.2 already installed' "$TEST_ROOT/output" || {
+  printf '%s\n' 'FAIL: Gum reuse diagnostic missing' >&2
+  exit 1
+}
+[ "$HOME/.local/bin/gum" -ef "$TEST_ROOT/reused-gum" ] || {
+  printf '%s\n' 'FAIL: Gum hard-link identity changed' >&2
+  exit 1
+}
+after=$(file_metadata "$HOME/.local/bin/gum") || exit 1
+[ "$before" = "$after" ] || {
+  printf 'FAIL: Gum metadata changed: %s -> %s\n' "$before" "$after" >&2
+  exit 1
+}
+after_hash=$("$REAL_SHASUM" -a 256 "$HOME/.local/bin/gum") || {
+  printf '%s\n' 'FAIL: could not hash Gum after reuse' >&2
+  exit 1
+}
+[ "$before_hash" = "$after_hash" ] || {
+  printf '%s\n' 'FAIL: Gum SHA-256 changed' >&2
+  exit 1
+}
+after_curl_count=$(wc -l <"$TEST_CURL_LOG") || {
+  printf '%s\n' 'FAIL: could not count downloads after reuse' >&2
+  exit 1
+}
+[ "$curl_count" = "$after_curl_count" ] || {
+  printf '%s\n' 'FAIL: curl invoked during offline reuse' >&2
+  exit 1
+}
 printf '%s\n' 'PASS: matching Gum reused offline without curl or replacement'
 
 new_home
