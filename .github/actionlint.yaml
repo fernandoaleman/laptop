@@ -1,0 +1,6 @@
+# Temporary compatibility exception for actionlint 1.7.12.
+# Remove once actionlint recognizes GitHub's xcode-27 runner.
+paths:
+  .github/workflows/ci.yaml:
+    ignore:
+      - 'label "xcode-27" is unknown'
