@@ -18,6 +18,13 @@
 - The default interactive shell (Bash versus Zsh) remains undecided. Installer scripts use Bash.
 - Do not create or modify agent skills without separate approval; shared skills belong under `.agents/skills` when approved.
 
+## GitHub tracking
+
+- Use GitHub Issues as the primary tracker for substantive laptop development; avoid duplicate or retrospective issues for completed work.
+- Group coherent multi-issue work in meaningful milestones. Define scope, acceptance criteria, dependencies, and relevant PR links in each issue.
+- Use `Refs` for partial work and `Closes` only when merging fully satisfies the issue.
+- Require explicit authorization for tracker changes. Close issues and milestones only when their acceptance criteria are satisfied.
+
 ## Draft pull request workflow
 
 - Use a GitHub draft pull request as the default collaboration and review mechanism for every feature branch that changes repository files.
