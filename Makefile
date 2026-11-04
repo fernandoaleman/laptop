@@ -41,16 +41,19 @@ setup:
 	done
 
 lint:
-	shellcheck -s bash laptop install.sh tests/bootstrap.sh
+	shellcheck -s bash laptop install.sh tests/bootstrap.sh install/run.sh install/components/*.sh lib/logging.sh
 
 format-check:
-	shfmt -d -i 2 laptop install.sh tests/bootstrap.sh
+	shfmt -d -i 2 laptop install.sh tests/bootstrap.sh install/run.sh install/components/*.sh lib/logging.sh
 
 test:
 	bash -n laptop
 	bash -n install.sh
 	bash -n tests/bootstrap.sh
+	bash -n install/run.sh
+	set -e; for script in install/components/*.sh lib/logging.sh; do bash -n "$$script"; done
 	bash tests/bootstrap.sh
+	python3 tests/payload.py
 
 check: lint format-check test
 	typos

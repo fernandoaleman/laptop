@@ -11,7 +11,12 @@ GUM_BINARY_SHA256=74cab6235944c0e39e69edfceef81150064687dd29cacec5ec1e954637f55d
 GUM_URL=https://github.com/charmbracelet/gum/releases/download/v2.0.2/gum_2.0.2_Darwin_arm64.tar.gz
 GUM_MEMBER=gum_2.0.2_Darwin_arm64/gum
 GUM_BIN="${HOME}/.local/bin/gum"
+# No release payload has been published or independently pinned yet.
+PAYLOAD_VERSION=0.0.0-dev
+PAYLOAD_URL=
+PAYLOAD_SHA256=
 TEMP_DIR=
+PAYLOAD_TEMP=
 CANDIDATE=
 
 fail() {
@@ -22,6 +27,7 @@ fail() {
 cleanup() {
   if [ -n "$CANDIDATE" ]; then rm -f "$CANDIDATE"; fi
   if [ -n "$TEMP_DIR" ]; then rm -rf "$TEMP_DIR"; fi
+  if [ -n "$PAYLOAD_TEMP" ]; then rm -rf "$PAYLOAD_TEMP"; fi
 }
 
 check_platform() {
@@ -107,6 +113,55 @@ gum_2.0.2_Darwin_arm64/gum'
   log_success "Gum $GUM_VERSION installed"
 }
 
+install_payload() {
+  umask 077
+  PAYLOAD_TEMP=$(mktemp -d "${TMPDIR:-/tmp}/laptop-payload.XXXXXX") || fail 'Could not create a private payload directory.'
+  trap cleanup EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  archive="$PAYLOAD_TEMP/payload.tar.gz"
+  (set +o posix && ulimit -f 5120 && curl -fsSL -o "$archive" "$PAYLOAD_URL") || fail 'Could not download payload.'
+  payload_hash=$(shasum -a 256 "$archive") || fail 'Could not hash payload.'
+  [ "${payload_hash%% *}" = "$PAYLOAD_SHA256" ] || fail 'Payload checksum mismatch.'
+  archive_size=$(wc -c <"$archive") || fail 'Could not inspect payload size.'
+  [ "$archive_size" -le 5242880 ] || fail 'Payload archive is too large.'
+  unpacked="$PAYLOAD_TEMP/payload.tar"
+  (set +o posix && ulimit -f 12288 && gzip -dc "$archive" >"$unpacked") || fail 'Could not decompress payload archive.'
+  (set +o posix && ulimit -f 1024 && tar -tf "$unpacked" >"$PAYLOAD_TEMP/members") || fail 'Could not inspect payload archive.'
+  members=$(cat "$PAYLOAD_TEMP/members") || fail 'Could not read payload members.'
+  expected='payload-version
+install/run.sh
+install/components/prepare.sh
+install/components/example.sh
+lib/logging.sh'
+  [ "$members" = "$expected" ] || fail 'Unexpected or unsafe payload archive contents.'
+  (set +o posix && ulimit -f 1024 && tar -tvf "$unpacked" --numeric-owner >"$PAYLOAD_TEMP/metadata") || fail 'Could not inspect payload metadata.'
+  awk '
+    $1 != "-rw-r--r--" { bad = 1 }
+    {
+      size = ""
+      if ($2 == "0/0") size = $3
+      else if ($2 == "0" && $3 == "0" && $4 == "0") size = $5
+      if (size !~ /^[0-9]+$/ || size > 1048576) bad = 1
+    }
+    END { if (NR != 5 || bad) exit 1 }
+  ' "$PAYLOAD_TEMP/metadata" || fail 'Unsafe payload entry metadata or size.'
+  root="$PAYLOAD_TEMP/root"
+  mkdir -p "$root/install/components" "$root/lib" || fail 'Could not create payload directories.'
+  root=$(cd "$root" && pwd -P) || fail 'Could not resolve payload directory.'
+  for member in payload-version install/run.sh install/components/prepare.sh install/components/example.sh lib/logging.sh; do
+    tar -xOf "$unpacked" "$member" >"$root/$member" || fail "Could not extract payload member: $member"
+  done
+  printf '%s\n' "$PAYLOAD_VERSION" | cmp -s - "$root/payload-version" || fail 'Payload version mismatch.'
+  if PAYLOAD_ROOT=$root GUM_BIN=$GUM_BIN /bin/bash "$root/install/run.sh" --apply; then
+    :
+  else
+    rc=$?
+    printf 'Error: payload runner failed (exit %s).\n' "$rc" >&2
+    exit "$rc"
+  fi
+}
+
 main() {
   case "${1:---gum-only}" in
   --check-platform)
@@ -119,7 +174,17 @@ main() {
     check_platform
     install_gum
     ;;
-  *) fail 'Usage: /bin/bash install.sh [--check-platform|--gum-only]' ;;
+  --payload)
+    [ "$#" -eq 1 ] || fail 'Usage: /bin/bash install.sh [--check-platform|--gum-only|--payload]'
+    check_platform
+    [ -n "$PAYLOAD_URL" ] && [ -n "$PAYLOAD_SHA256" ] || fail 'No verified payload release is available yet.'
+    case "$PAYLOAD_URL" in https://*) ;; *) fail 'Payload URL must use HTTPS.' ;; esac
+    [ "${#PAYLOAD_SHA256}" -eq 64 ] || fail 'Invalid pinned payload checksum.'
+    case "$PAYLOAD_SHA256" in *[!0-9a-f]*) fail 'Invalid pinned payload checksum.' ;; esac
+    install_gum
+    install_payload
+    ;;
+  *) fail 'Usage: /bin/bash install.sh [--check-platform|--gum-only|--payload]' ;;
   esac
 }
 
