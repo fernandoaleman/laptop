@@ -39,3 +39,9 @@ jobs:
         run: make check
       - name: Check GitHub Actions workflow
         run: actionlint .github/workflows/ci.yaml
+  macos-bootstrap:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Test fixtures with macOS Bash
+        run: /bin/bash tests/bootstrap.sh

@@ -41,13 +41,16 @@ setup:
 	done
 
 lint:
-	shellcheck -s bash laptop
+	shellcheck -s bash laptop install.sh tests/bootstrap.sh
 
 format-check:
-	shfmt -d -i 2 laptop
+	shfmt -d -i 2 laptop install.sh tests/bootstrap.sh
 
 test:
 	bash -n laptop
+	bash -n install.sh
+	bash -n tests/bootstrap.sh
+	bash tests/bootstrap.sh
 
 check: lint format-check test
 	typos
