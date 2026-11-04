@@ -25,9 +25,11 @@ fail() {
 }
 
 cleanup() {
-  if [ -n "$CANDIDATE" ]; then rm -f "$CANDIDATE"; fi
-  if [ -n "$TEMP_DIR" ]; then rm -rf "$TEMP_DIR"; fi
-  if [ -n "$PAYLOAD_TEMP" ]; then rm -rf "$PAYLOAD_TEMP"; fi
+  local original_status=$?
+  if [ -n "$CANDIDATE" ]; then rm -f "$CANDIDATE" || printf 'Warning: could not remove Gum candidate: %s\n' "$CANDIDATE" >&2 || :; fi
+  if [ -n "$TEMP_DIR" ]; then rm -rf "$TEMP_DIR" || printf 'Warning: could not remove Gum temporary directory: %s\n' "$TEMP_DIR" >&2 || :; fi
+  if [ -n "$PAYLOAD_TEMP" ]; then rm -rf "$PAYLOAD_TEMP" || printf 'Warning: could not remove payload temporary directory: %s\n' "$PAYLOAD_TEMP" >&2 || :; fi
+  return "$original_status"
 }
 
 check_platform() {
