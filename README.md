@@ -129,6 +129,52 @@ provisioning is implemented. Failed runs clean owned temporary directories;
 after a hard kill or power loss, an owned temporary directory may remain.
 Once enabled, `--payload` installs or verifies Gum before checking the payload.
 
+Release-candidate tooling is experimental and does not publish or enable the
+installer. A candidate source must contain its exact `vMAJOR.MINOR.PATCH-rc.N`
+in `payload-version`; the builder accepts `--version VERSION` and requires an
+output named `laptop-payload-VERSION.tar.gz`. `tools/prepare-bootstrap.py` binds
+an independently reviewed payload digest into a candidate copy outside the
+repository. Its printed bootstrap digest still requires independent review.
+`tools/verify-release.py` requires a full source commit and separately reviewed
+payload, bootstrap, and verifier SHA-256 digests. Before running it, obtain the
+reviewed source commit and verifier digest from an authenticated independent
+review channel, and compare the verifier file with that digest using a trusted
+external SHA-256 utility. For local checkpoints, the operator can receive the
+reviewed digest directly from the user in the authenticated project conversation
+and independently compare it before execution:
+
+```sh
+printf '%s  %s\n' "$REVIEWED_VERIFIER_SHA256" tools/verify-release.py | shasum -a 256 -c
+```
+
+This trusts that conversation and the external checksum utility; a digest read
+only from the same checkout is not an independent review. Do not trust a verifier to authenticate itself or
+treat a Git commit identifier alone as proof of review. The verifier additionally
+requires its running bytes to match both the supplied digest and the verifier
+blob in that exact source commit. It rebuilds source blobs in two temporary
+directories, checks payload contents and metadata, reconstructs the candidate,
+and prints a JSON report. It requires `--local-only` and never approves a
+release. Builds in one environment do not prove independent
+cross-environment reproducibility. The source commit and build tools must be
+reviewed before running them; the verifier executes the committed builder.
+Run the verifier and committed builder in a disposable environment without
+network access, secrets, or publishing credentials; a trusted commit check does
+not sandbox code.
+The proposed Linux AMD64 build image is `python:3.12.16-bookworm` pinned to
+`sha256:034c3e9d991f148d14c32ff8350286b91420baca7757d37819c7a9cc771317a0`.
+Its runtime Python and zlib versions must be verified before release use.
+
+Before any release, pin and verify the Linux build image and Python/zlib, rebuild
+from the final approved commit independently, and compare the reviewed digests.
+Separately approve release settings, tag creation, and publication. Require
+immutable releases, reject existing tags and asset names, publish a draft with
+all assets, verify the tag points to the reviewed commit, verify provenance and
+re-download the assets before publishing. Authenticate the initial bootstrap
+instructions independently before offering an installation command.
+On failure stop; correct the source and use a new release identity if necessary.
+Release verification on a development machine may use Python and Git; neither
+is required by the installer runtime. No production release is available yet.
+
 For development, run `make setup` to check the required tools and install
 missing Homebrew formulae and prek Git hooks. Existing non-prek hooks are
 preserved and must be resolved before setup can install hooks. Prek supplies

@@ -5,6 +5,7 @@ import hashlib
 import io
 import os
 import pathlib
+import random
 import shutil
 import subprocess
 import tarfile
@@ -130,6 +131,173 @@ class PayloadTests(unittest.TestCase):
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(output.exists())
+
+    def test_candidate_version_and_name_binding(self):
+        source = self.root / "candidate"
+        source.mkdir()
+        shutil.copytree(ROOT / "tools", source / "tools")
+        shutil.copytree(ROOT / "install", source / "install")
+        shutil.copytree(ROOT / "lib", source / "lib")
+        (source / "payload-version").write_text("v2.0.0-rc.1\n")
+        builder = source / "tools/build-payload.py"
+        output = self.root / "laptop-payload-v2.0.0-rc.1.tar.gz"
+        def build(version, target):
+            return subprocess.run(["python3", str(builder), "--version", version, str(target)],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertNotEqual(build("v2.0.0-rc.2", output).returncode, 0)
+        self.assertNotEqual(build("latest", output).returncode, 0)
+        self.assertNotEqual(build("v2.0.0-rc.1", self.root / "wrong.tar.gz").returncode, 0)
+        self.assertFalse(output.exists())
+        self.assertEqual(build("v2.0.0-rc.1", output).returncode, 0)
+        self.assertNotEqual(build("v2.0.0-rc.1", output).returncode, 0)
+        with tarfile.open(output) as archive:
+            self.assertEqual(archive.extractfile("payload-version").read(), b"v2.0.0-rc.1\n")
+
+    def test_release_verifier_with_reviewed_fixture(self):
+        source = self.root / "reviewed-source"
+        source.mkdir()
+        shutil.copytree(ROOT / "tools", source / "tools")
+        shutil.copytree(ROOT / "install", source / "install")
+        shutil.copytree(ROOT / "lib", source / "lib")
+        shutil.copy(ROOT / "install.sh", source / "install.sh")
+        (source / "payload-version").write_text("v2.0.0-rc.1\n")
+        artifact = self.root / "laptop-payload-v2.0.0-rc.1.tar.gz"
+        subprocess.run(["python3", str(source / "tools/build-payload.py"), "--version",
+                        "v2.0.0-rc.1", str(artifact)], check=True)
+        payload_hash = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        template = (source / "install.sh").read_text()
+        candidate_path = self.root / "install-v2.0.0-rc.1.sh"
+        subprocess.run(["python3", str(ROOT / "tools/prepare-bootstrap.py"), "--version", "v2.0.0-rc.1",
+                        "--payload-sha256", payload_hash, "--output", str(candidate_path)],
+                       check=True, stdout=subprocess.PIPE)
+        candidate = candidate_path.read_text()
+        bootstrap_hash = hashlib.sha256(candidate_path.read_bytes()).hexdigest()
+        self.stub("git", 'case "$1" in\n'
+                         'cat-file) exit 0;;\n'
+                         'rev-parse) printf "%s\\n" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;\n'
+                         'ls-tree) printf "100644 blob fake\\t%s\\n" "$4";;\n'
+                         'show) cat "$FAKE_SOURCE/${2#*:}";;\n'
+                         '*) exit 1;; esac')
+        env = dict(self.env, FAKE_SOURCE=str(source))
+        args = ["python3", str(ROOT / "tools/verify-release.py"), "--source", "a" * 40,
+                "--version", "v2.0.0-rc.1", "--payload-sha256", payload_hash,
+                "--bootstrap-sha256", bootstrap_hash, "--bootstrap-file", str(candidate_path),
+                "--verifier-sha256", hashlib.sha256((ROOT / "tools/verify-release.py").read_bytes()).hexdigest(), "--local-only"]
+        def verify(command):
+            return subprocess.run(command, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = verify(args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('"verification": "two isolated directories, same environment"', result.stdout)
+        self.assertIn('"release_ready": false', result.stdout)
+        self.assertNotEqual(verify(args[:-1]).returncode, 0)
+        for flag in ("--payload-sha256", "--bootstrap-sha256", "--verifier-sha256"):
+            bad = args.copy()
+            bad[bad.index(flag) + 1] = "0" * 64
+            self.assertNotEqual(verify(bad).returncode, 0)
+        candidate_path.write_text("substituted\n")
+        self.assertNotEqual(verify(args).returncode, 0)
+        candidate_path.write_text(candidate)
+        component = source / "install/components/example.sh"
+        original = component.read_bytes()
+        component.write_bytes(b"x" * 1048577)
+        large_dir = self.root / "large-candidate"
+        large_dir.mkdir()
+        large_artifact = large_dir / artifact.name
+        subprocess.run(["python3", str(source / "tools/build-payload.py"), "--version",
+                        "v2.0.0-rc.1", str(large_artifact)], check=True)
+        large_args = args.copy()
+        large_args[large_args.index("--payload-sha256") + 1] = hashlib.sha256(large_artifact.read_bytes()).hexdigest()
+        self.assertIn("invalid archive metadata", verify(large_args).stderr)
+        component.write_bytes(random.Random(0).randbytes(6 * 1048576))
+        compressed_dir = self.root / "large-compressed"
+        compressed_dir.mkdir()
+        compressed_artifact = compressed_dir / artifact.name
+        subprocess.run(["python3", str(source / "tools/build-payload.py"), "--version",
+                        "v2.0.0-rc.1", str(compressed_artifact)], check=True)
+        large_args[large_args.index("--payload-sha256") + 1] = hashlib.sha256(compressed_artifact.read_bytes()).hexdigest()
+        self.assertIn("payload archive exceeds installer limit", verify(large_args).stderr)
+        component.write_bytes(original)
+        (source / "payload-version").write_text("v2.0.0-rc.2\n")
+        self.assertNotEqual(verify(args).returncode, 0)
+        (source / "payload-version").write_text("v2.0.0-rc.1\n")
+        (source / "install.sh").write_text(template + "PAYLOAD_URL=\n")
+        self.assertNotEqual(verify(args).returncode, 0)
+
+    def test_prepare_bootstrap_candidate_is_exclusive(self):
+        output = self.root / "install-v2.0.0-rc.1.sh"
+        command = ["python3", str(ROOT / "tools/prepare-bootstrap.py"),
+                   "--version", "v2.0.0-rc.1", "--payload-sha256", "a" * 64,
+                   "--output", str(output)]
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        candidate = output.read_text()
+        self.assertIn("PAYLOAD_SHA256=" + "a" * 64, candidate)
+        self.assertIn("/v2.0.0-rc.1/laptop-payload-v2.0.0-rc.1.tar.gz", candidate)
+        self.assertNotEqual(subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode, 0)
+        self.assertEqual(output.read_text(), candidate)
+        self.assertEqual(list(self.root.glob(".bootstrap-*")), [])
+        command[command.index("--payload-sha256") + 1] = "bad"
+        self.assertNotEqual(subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode, 0)
+        self.assertIn("PAYLOAD_SHA256=\n", (ROOT / "install.sh").read_text())
+
+    def test_release_verifier_real_git_success_and_identity(self):
+        source = self.root / "git-source"
+        source.mkdir()
+        for name in ("tools", "install", "lib"):
+            shutil.copytree(ROOT / name, source / name)
+        shutil.copy(ROOT / "install.sh", source / "install.sh")
+        (source / "payload-version").write_text("v2.0.0-rc.1\n")
+        env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null")
+        def git(*args):
+            return subprocess.check_output(["git", *args], cwd=source, env=env, stderr=subprocess.PIPE).decode().strip()
+        git("init", "--quiet", "--template=")
+        git("add", "--", "tools", "install", "lib", "install.sh", "payload-version")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false",
+            "commit", "--quiet", "-m", "fixture")
+        commit = git("rev-parse", "HEAD")
+        artifact = self.root / "laptop-payload-v2.0.0-rc.1.tar.gz"
+        subprocess.run(["python3", str(source / "tools/build-payload.py"), "--version", "v2.0.0-rc.1", str(artifact)], check=True)
+        payload_hash = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        candidate = self.root / "install-v2.0.0-rc.1.sh"
+        subprocess.run(["python3", str(source / "tools/prepare-bootstrap.py"), "--version", "v2.0.0-rc.1",
+                        "--payload-sha256", payload_hash, "--output", str(candidate)], check=True, stdout=subprocess.PIPE)
+        verifier = source / "tools/verify-release.py"
+        verifier_hash = hashlib.sha256(verifier.read_bytes()).hexdigest()
+        args = ["python3", str(verifier), "--source", commit, "--version", "v2.0.0-rc.1",
+                "--payload-sha256", payload_hash, "--bootstrap-sha256", hashlib.sha256(candidate.read_bytes()).hexdigest(),
+                "--bootstrap-file", str(candidate), "--verifier-sha256", verifier_hash, "--local-only"]
+        (source / "payload-version").write_text("uncommitted change\n")
+        (source / "install/components/example.sh").write_text("uncommitted change\n")
+        def verify(command):
+            return subprocess.run(command, cwd=source, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = verify(args)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(commit, result.stdout)
+        self.assertIn(payload_hash, result.stdout)
+        bad = args.copy()
+        bad[bad.index("--version") + 1] = "v2.0.0-rc.2"
+        self.assertIn("source version mismatch", verify(bad).stderr)
+        bad = args.copy()
+        bad[bad.index("--source") + 1] = "0" * 40
+        self.assertNotEqual(verify(bad).returncode, 0)
+        bad = args.copy()
+        bad[bad.index("--verifier-sha256") + 1] = "0" * 64
+        self.assertNotEqual(verify(bad).returncode, 0)
+        bad = args.copy()
+        index = bad.index("--verifier-sha256")
+        del bad[index:index + 2]
+        self.assertNotEqual(verify(bad).returncode, 0)
+        original_verifier = verifier.read_text()
+        verifier.write_text(original_verifier + "\n# modified\n")
+        self.assertIn("running verifier differs", verify(args).stderr)
+        git("add", "--", "tools/verify-release.py")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "-c", "commit.gpgsign=false",
+            "commit", "--quiet", "-m", "substituted verifier")
+        other_commit = git("rev-parse", "HEAD")
+        verifier.write_text(original_verifier)
+        bad = args.copy()
+        bad[bad.index("--source") + 1] = other_commit
+        self.assertIn("verifier in reviewed source commit", verify(bad).stderr)
 
     def test_verified_payload_and_rerun(self):
         archive = self.archive()
